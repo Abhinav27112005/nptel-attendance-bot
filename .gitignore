@@ -1,0 +1,34 @@
+# Secrets — kabhi GitHub pe nahi
+.env
+
+# Node
+node_modules/
+**/node_modules/
+
+# WhatsApp session (login data — private)
+**/.wwebjs_auth/
+**/.wwebjs_cache/
+
+# Chrome persistent profile (login data)
+**/chrome_profile/
+
+# Uploaded offer letters (private docs) — cloud mein store honge
+offer_letters/
+
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Python virtual environments (project ke andar wala venv — GitHub pe nahi)
+attendanceautomate/
+venv/
+env/
+.venv/
+
+# Logs aur screenshots
+logs/
+**/logs/
+
+# Local user profiles (ab cloud DB use karte hain — personal data GitHub pe na jaaye)
+users/

@@ -1,0 +1,5 @@
+flask
+pdfplumber
+pymongo[srv]
+python-dotenv
+gunicorn
