@@ -3,3 +3,4 @@ pdfplumber
 pymongo[srv]
 python-dotenv
 gunicorn
+cloudinary

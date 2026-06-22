@@ -33,6 +33,9 @@ from extract_offer_letter import extract_offer_letter
 # Data layer — profile MongoDB ya local files mein save karta hai
 from db import save_user, using_cloud
 
+# Cloudinary — offer letter PDF cloud pe store karne ke liye
+from cloud_storage import upload_pdf
+
 app = Flask(__name__)
 
 # --- FOLDERS -----------------------------------------------------------------
@@ -109,9 +112,20 @@ def register():
     os.replace(temp_path, final_pdf)
     profile['offer_letter_file'] = os.path.basename(final_pdf)
 
-    # --- 7. Profile save karo (cloud MongoDB ya local files — db.py decide karta hai) ---
-    #        PDF bhi pass karte hain taaki cloud mode mein woh DB mein store ho jaaye.
-    save_user(profile, final_pdf)
+    # --- 7. PDF ko Cloudinary pe upload karo (permanent storage + authenticity) ---
+    try:
+        cloud_url = upload_pdf(final_pdf, sanitize(profile['internship_id']))
+        if cloud_url:
+            profile['offer_letter_url'] = cloud_url   # Cloudinary ka permanent link
+            print(f"[Cloudinary] Uploaded: {cloud_url}")
+        else:
+            print("[Cloudinary] Configured nahi — PDF cloud pe upload nahi hua (skip).")
+    except Exception as e:
+        # Cloudinary fail ho to bhi registration na ruke — bas warning
+        print(f"[Cloudinary] Upload error (non-fatal): {e}")
+
+    # --- 8. Profile save karo (cloud MongoDB ya local files — db.py decide karta hai) ---
+    save_user(profile)
     print(f"[Register] Saved {profile['internship_id']} ({'cloud' if using_cloud() else 'local'})")
 
     # --- 8. Success — extracted details wapas bhejo (user verify kar le) ---

@@ -66,9 +66,11 @@ function splitDate(dateStr) {
 // -----------------------------------------------------------------------------
 function splitTime(timeStr) {
     const [hour, minute] = timeStr.split(':');  // "09:45" → ["09","45"]
+    // String mein wapas (padded 2-digit) — Google Forms time pre-fill ko
+    // "09" chahiye, "9" nahi. parseInt karne se "09" → 9 ho jata tha.
     return {
-        hour: parseInt(hour, 10),     // 9
-        minute: parseInt(minute, 10)  // 45
+        hour: String(parseInt(hour, 10)).padStart(2, '0'),     // "09"
+        minute: String(parseInt(minute, 10)).padStart(2, '0')  // "45"
     };
 }
 

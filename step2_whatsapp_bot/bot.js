@@ -97,10 +97,8 @@ const BOT_CONFIG = {
     COMMAND_PREFIX: '!',
 
     // Registration website ka URL — naya user "REGISTER" bhejega to ye link milega.
-    // LOCAL test: http://localhost:5000
-    // Dost ke phone se access ke liye: apne laptop ka WiFi IP daalo, jaise http://192.168.1.5:5000
-    // (Internet pe chahiye to baad mein ngrok/hosting use karenge.)
-    REGISTER_URL: 'http://localhost:5000',
+    // Render pe deployed (hamesha online, dost ke phone se bhi khulega).
+    REGISTER_URL: 'https://nptel-attendance-bot.onrender.com',
 
     // Your WhatsApp number with country code (no + or spaces)
     // PHASE 1 (single user): only this number can trigger the bot.
@@ -139,17 +137,37 @@ const userSessions = new Map();
 // --- HELPER FUNCTIONS --------------------------------------------------------
 
 /**
- * WhatsApp number se user ka profile dhoondho.
- * Ab ye db.js ke through aata hai (MongoDB cloud ya local files).
+ * Message se user ka profile dhoondho — DB se mobile number ke base par.
  *
- * NOTE: ab ye ASYNC hai (cloud se data aane mein time lagta hai),
- *       isliye call karte waqt 'await' lagana zaroori hai.
+ * IMPORTANT: msg.from kabhi @c.us hota hai (asli phone number) aur kabhi @lid
+ *   (WhatsApp ki internal device ID — yeh asli number NAHI hai).
+ *   Doosre logon ke messages aksar @lid mein aate hain.
+ *   Asli mobile number nikalne ke liye msg.getContact() use karte hain —
+ *   yeh WhatsApp Web se contact ki info laata hai, jisme .number = asli phone.
  *
- * @param {string} whatsappId - "919876543210@c.us" / "...@lid"
- * @returns {Promise<object|null>}
+ * @param {object} msg - whatsapp-web.js ka message object
+ * @returns {Promise<{profile: object|null, mobile: string|null}>}
  */
-async function findUserByWhatsAppId(whatsappId) {
-    return await db.getUserByMobile(whatsappId);
+async function findUserByMessage(msg) {
+    let mobile = null;
+
+    // Pehle koshish karo @c.us se (sidha number)
+    if (msg.from.endsWith('@c.us')) {
+        mobile = msg.from.replace('@c.us', '');
+    } else {
+        // @lid hai — WhatsApp se contact info maango, .number = asli mobile
+        try {
+            const contact = await msg.getContact();
+            mobile = contact?.number || null;
+        } catch (e) {
+            console.error('[Auth] getContact fail:', e.message);
+        }
+    }
+
+    if (!mobile) return { profile: null, mobile: null };
+
+    const profile = await db.getUserByMobile(mobile);
+    return { profile, mobile };
 }
 
 /**
@@ -463,14 +481,14 @@ async function handleMessage(msg) {
     //   findUserByWhatsAppId users/ folder mein dekhta hai is number ka
     //   profile hai ya nahi. Mil gaya to profile object, warna null.
     // ---------------------------------------------------------
-    const profile = await findUserByWhatsAppId(msg.from);
+    const { profile, mobile } = await findUserByMessage(msg);
 
     if (!profile) {
-        // Unregistered number — privacy ke liye CHUP raho.
-        // (REGISTER bhejne par upar link mil jata hai.)
-        console.log(`[Auth] Unregistered number ${senderId} — ignored`);
+        // Unregistered — privacy ke liye chup raho. (REGISTER bhejne par link mil jata hai.)
+        console.log(`[Auth] Unregistered mobile=${mobile || '?'} (from=${senderId}) — ignored`);
         return;
     }
+    console.log(`[Auth] ${profile.name} (${mobile}) — processing`);
 
     console.log(`[Auth] Registered user: ${profile.name}`);
 
