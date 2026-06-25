@@ -137,37 +137,23 @@ const userSessions = new Map();
 // --- HELPER FUNCTIONS --------------------------------------------------------
 
 /**
- * Message se user ka profile dhoondho — DB se mobile number ke base par.
+ * Message se user ka profile dhoondho.
  *
- * IMPORTANT: msg.from kabhi @c.us hota hai (asli phone number) aur kabhi @lid
- *   (WhatsApp ki internal device ID — yeh asli number NAHI hai).
- *   Doosre logon ke messages aksar @lid mein aate hain.
- *   Asli mobile number nikalne ke liye msg.getContact() use karte hain —
- *   yeh WhatsApp Web se contact ki info laata hai, jisme .number = asli phone.
+ * IMPORTANT: msg.from kabhi @c.us hota hai (mobile number visible) aur kabhi
+ *   @lid (WhatsApp ki internal device ID — phone number NAHI). Newer accounts
+ *   mostly @lid se aate hain aur WhatsApp Web API se phone resolve karna
+ *   reliably nahi hota.
  *
- * @param {object} msg - whatsapp-web.js ka message object
- * @returns {Promise<{profile: object|null, mobile: string|null}>}
+ *   db.getUserByMobile() dono check karta hai:
+ *     - whatsapp_id field (full @c.us / @lid)
+ *     - mobile field (phone digits, @c.us se nikal ke)
+ *
+ *   @lid users ke liye whatsapp_id DB mein "LINK <internship_id>" command
+ *   ke baad save hoti hai (ek-baar ka onboarding step).
  */
 async function findUserByMessage(msg) {
-    let mobile = null;
-
-    // Pehle koshish karo @c.us se (sidha number)
-    if (msg.from.endsWith('@c.us')) {
-        mobile = msg.from.replace('@c.us', '');
-    } else {
-        // @lid hai — WhatsApp se contact info maango, .number = asli mobile
-        try {
-            const contact = await msg.getContact();
-            mobile = contact?.number || null;
-        } catch (e) {
-            console.error('[Auth] getContact fail:', e.message);
-        }
-    }
-
-    if (!mobile) return { profile: null, mobile: null };
-
-    const profile = await db.getUserByMobile(mobile);
-    return { profile, mobile };
+    const profile = await db.getUserByMobile(msg.from);
+    return { profile, whatsappId: msg.from };
 }
 
 /**
@@ -459,7 +445,27 @@ async function botReply(msg, text) {
     return sent;
 }
 
+// DEDUPE: WhatsApp Web @lid contacts ke liye DONO 'message' aur 'message_create'
+// events fire hote hain (self-messages mein sirf ek). Same message ki ID dobara
+// aaye to skip karo, warna har reply 2 baar bheji jaayegi.
+const processedMessageIds = new Set();
+function alreadyProcessed(msg) {
+    const id = msg?.id?._serialized;
+    if (!id) return false;
+    if (processedMessageIds.has(id)) return true;
+    processedMessageIds.add(id);
+    // Memory cap — sirf last 500 IDs yaad rakho
+    if (processedMessageIds.size > 500) {
+        const arr = [...processedMessageIds];
+        arr.slice(0, 250).forEach(i => processedMessageIds.delete(i));
+    }
+    return false;
+}
+
 async function handleMessage(msg) {
+    // Pehla check: yeh message pehle process ho chuka? (dual-event dedup)
+    if (alreadyProcessed(msg)) return;
+
     // Capture our own @lid from the first self-message we see.
     // WHY: window.Store.Me.lid is null in this whatsapp-web.js version,
     //      but msg.to on a self-message contains our @lid — so we grab it here.
@@ -489,72 +495,136 @@ async function handleMessage(msg) {
     //   Agar PEHLE SE registered hai → bata do, dobara karne ki zaroorat nahi.
     //   trim + toUpperCase taaki "register", "Register", " REGISTER " sab chale.
     // ---------------------------------------------------------
-    if (messageBody.trim().toUpperCase() === 'REGISTER') {
+    // ---------------------------------------------------------
+    // COMMAND DETECTION — strict! Sirf in commands pe react karenge:
+    //   REGISTER, LINK <id>, WORK: ..., YES, CANCEL, LOGIN HH:MM, !help, !status
+    // Baaki SAB silent ignore (personal baatein, normal chat, kuch nahi).
+    // ---------------------------------------------------------
+    const trimmed = messageBody.trim();
+    const upper   = trimmed.toUpperCase();
+
+    const isRegister = upper === 'REGISTER';
+    const linkMatch  = trimmed.match(/^LINK\s+([A-Z0-9]+)$/i);  // "LINK SUM260111"
+    const workMatch  = trimmed.match(/^WORK:\s*(.+)/is);
+    const isYes      = upper === 'YES';
+    const isCancel   = upper === 'CANCEL';
+    const loginMatch = trimmed.match(/^LOGIN\s+(\d{1,2}:\d{2})$/i);
+    const isBangCmd  = trimmed.startsWith('!') && /^!(help|status)$/i.test(trimmed);
+
+    // Recognized command hai ya nahi?
+    const isCommand = isRegister || linkMatch || workMatch || isYes || isCancel || loginMatch || isBangCmd;
+    if (!isCommand) {
+        // Normal chat / casual message — bilkul chup. Privacy + no spam.
+        return;
+    }
+
+    // ---------------------------------------------------------
+    // REGISTER — pehle se registered? bata do. Naya? site ka link.
+    // ---------------------------------------------------------
+    if (isRegister) {
         const { profile: existing } = await findUserByMessage(msg);
         if (existing) {
-            // Already registered — naam ke saath confirm karo
             await botReply(msg,
                 `✅ *Tum already registered ho!*\n\n` +
                 `👤 Name: ${existing.name}\n` +
                 `🆔 ID: ${existing.internship_id}\n\n` +
                 `Attendance ke liye bas bhejo: *WORK: aaj jo kaam kiya*\n\n` +
-                `_Details badalni hain to update ke liye site: ${BOT_CONFIG.REGISTER_URL}_`
+                `_Details badalni hain to: ${BOT_CONFIG.REGISTER_URL}_`
             );
         } else {
             await botReply(msg,
                 `📝 *NPTEL Attendance Bot — Registration*\n\n` +
-                `Niche link kholo aur apna *offer letter PDF* upload karo — ` +
-                `details apne aap nikal lenge.\n\n` +
+                `Niche link kholo aur apna *offer letter PDF* upload karo — details apne aap nikal lenge.\n\n` +
                 `👉 ${BOT_CONFIG.REGISTER_URL}\n\n` +
-                `Register hone ke baad, attendance ke liye bas bhejo:\n` +
-                `*WORK: aaj jo kaam kiya*`
+                `*Website pe register karne ke baad* WhatsApp pe bhejo:\n` +
+                `*LINK <internship_id>*  (jaise: LINK SUM260111)\n\n` +
+                `Ye ek baar ka step hai — phir attendance ke liye bas *WORK: ...* bhejo.`
             );
         }
         return;
     }
 
     // ---------------------------------------------------------
-    // GATE 2: Number registered hai? (MULTI-USER)
-    //   findUserByWhatsAppId users/ folder mein dekhta hai is number ka
-    //   profile hai ya nahi. Mil gaya to profile object, warna null.
+    // LINK <internship_id> — WhatsApp account ko registered profile se jodo
+    //   Ye step zaroori hai kyunki WhatsApp Web @lid users ka mobile reliably
+    //   nahi resolve hota — toh user khud apni ID bata ke link karte hain.
     // ---------------------------------------------------------
-    const { profile, mobile } = await findUserByMessage(msg);
+    if (linkMatch) {
+        const internshipId = linkMatch[1].toUpperCase();
 
-    if (!profile) {
-        // Unregistered — privacy ke liye chup raho. (REGISTER bhejne par link mil jata hai.)
-        console.log(`[Auth] Unregistered mobile=${mobile || '?'} (from=${senderId}) — ignored`);
+        // Pehle dekh — pehle se linked hai kya?
+        const { profile: existing } = await findUserByMessage(msg);
+        if (existing) {
+            await botReply(msg,
+                `✅ Tum pehle se linked ho!\n👤 ${existing.name} (${existing.internship_id})`
+            );
+            return;
+        }
+
+        // Profile ID se dhoondho aur is WhatsApp ID ko link karo
+        const linked = await db.linkWhatsappId(internshipId, msg.from);
+        if (!linked) {
+            await botReply(msg,
+                `❌ ID *${internshipId}* nahi mili.\n\n` +
+                `Pehle website pe register karo: ${BOT_CONFIG.REGISTER_URL}\n` +
+                `Phir wapas aake *LINK ${internshipId}* bhejo.`
+            );
+            return;
+        }
+
+        // Verify (saved profile lao)
+        const { profile: verifyProfile } = await findUserByMessage(msg);
+        await botReply(msg,
+            `✅ *Account linked!*\n\n` +
+            `👤 ${verifyProfile?.name || '(name not set)'}\n` +
+            `🆔 ${internshipId}\n\n` +
+            `Ab attendance ke liye bhejo: *WORK: aaj jo kaam kiya*`
+        );
         return;
     }
-    console.log(`[Auth] ${profile.name} (${mobile}) — processing`);
 
-    console.log(`[Auth] Registered user: ${profile.name}`);
+    // ---------------------------------------------------------
+    // Iske aage saare commands ke liye REGISTRATION zaroori
+    // ---------------------------------------------------------
+    const { profile } = await findUserByMessage(msg);
+
+    if (!profile) {
+        // Recognized command bheji par registered nahi — onboarding hint do
+        console.log(`[Auth] Unregistered (from=${senderId}) — sending onboard hint`);
+        await botReply(msg,
+            `👋 Pehli baar? Ye karo:\n\n` +
+            `1️⃣ Website pe register karo: ${BOT_CONFIG.REGISTER_URL}\n` +
+            `2️⃣ WhatsApp pe bhejo: *LINK <your-internship-id>*\n\n` +
+            `Ya bas *REGISTER* bhejo — link milega.`
+        );
+        return;
+    }
+    console.log(`[Auth] ${profile.name} — processing`);
 
     const session = getSession(senderId);
 
     // ---------------------------------------------------------
-    // COMMANDS (! se shuru) — sirf registered users ke liye
+    // !help / !status
     // ---------------------------------------------------------
-    if (messageBody.startsWith(BOT_CONFIG.COMMAND_PREFIX)) {
-        const command = messageBody.slice(1).toLowerCase();
-
-        if (command === 'help') {
+    if (isBangCmd) {
+        const cmd = trimmed.slice(1).toLowerCase();
+        if (cmd === 'help') {
             await botReply(msg,
                 `*NPTEL Attendance Bot* 🤖\n\n` +
                 `Attendance bharne ke liye aise likho:\n` +
                 `*WORK: aaj jo kaam kiya uska ek line description*\n\n` +
-                `Example:\n_WORK: Worked on data preprocessing and model training_\n\n` +
-                `Phir summary aayega → *YES* bhejo → bhara-bharaya form link milega.\n\n` +
-                `Commands:\n!help - ye message\n!status - bot status`
+                `Phir summary → *YES* → bhara-bharaya form link.\n\n` +
+                `*Commands:*\n` +
+                `REGISTER - registration / status\n` +
+                `LINK <id> - account link karo\n` +
+                `WORK: ... - attendance shuru\n` +
+                `YES / CANCEL - confirm / radd\n` +
+                `LOGIN HH:MM - login time badlo\n` +
+                `!help / !status`
             );
-            return;
-        }
-
-        if (command === 'status') {
+        } else {
             await botReply(msg, `Bot chal raha hai ✅\nUser: ${profile.name}\nState: ${session.state}`);
-            return;
         }
-
-        await botReply(msg,`Unknown command: ${messageBody}\nSend !help for help.`);
         return;
     }
 
@@ -563,105 +633,70 @@ async function handleMessage(msg) {
     // (session aur profile upar already nikal liye hain)
     // ---------------------------------------------------------
 
-    // === STATE: IDLE ===
-    // Sirf "WORK: ..." format ka message hi automation trigger kare.
-    // LEARNING CONCEPT: Trigger prefix + regex
-    //   /^WORK:\s*(.+)/is ka matlab:
-    //     ^WORK:  → message "WORK:" se shuru ho
-    //     \s*     → uske baad spaces (optional)
-    //     (.+)    → uske baad jo bhi (kaam ka description) — ye capture hota hai
-    //     i       → case-insensitive (work:, WORK:, Work: sab chalega)
-    //     s       → "." newline ko bhi match kare (multi-line description)
-    if (session.state === 'IDLE') {
-        const workMatch = messageBody.match(/^WORK:\s*(.+)/is);
-
-        if (!workMatch) {
-            // "WORK:" format nahi hai → normal personal message, IGNORE karo.
-            // Isse bot personal baaton mein dakhal nahi deta (privacy).
-            console.log(`[Session] ${profile.name}: non-WORK message ignored`);
-            return;
-        }
-
-        const natureOfWork = workMatch[1].trim();  // "WORK:" ke baad ka text
-
-        // Logout time = message bhejne ka time (kaam abhi khatam hua)
+    // ---------------------------------------------------------
+    // WORK: <description>  →  summary aur YES ka intezaar
+    // ---------------------------------------------------------
+    if (workMatch) {
+        const natureOfWork = workMatch[1].trim();
         const logoutTime = `${String(messageTime.getHours()).padStart(2, '0')}:${String(messageTime.getMinutes()).padStart(2, '0')}`;
-
         session.pendingData = {
-            natureOfWork: natureOfWork,
-            loginTime: profile.default_login_time,  // default 09:45 — LOGIN se badal sakta hai
-            logoutTime: logoutTime
+            natureOfWork,
+            loginTime: profile.default_login_time,
+            logoutTime
         };
         session.state = 'AWAITING_CONFIRM';
-
         await botReply(msg, formatSummaryMessage(profile, session.pendingData));
         console.log(`[Session] ${senderId} → AWAITING_CONFIRM`);
         return;
     }
 
-    // === STATE: AWAITING_CONFIRM ===
-    // YES / LOGIN HH:MM / CANCEL ka intezaar.
-    if (session.state === 'AWAITING_CONFIRM') {
-        const upperMsg = messageBody.toUpperCase();
+    // ---------------------------------------------------------
+    // YES / CANCEL / LOGIN — sirf AWAITING_CONFIRM state mein matter karte hain
+    // (state se bahar ho to silently ignore — koi nagging reply nahi)
+    // ---------------------------------------------------------
+    if (session.state !== 'AWAITING_CONFIRM') {
+        // Command recognize ki par session sahi state mein nahi — chhupa do
+        return;
+    }
 
-        // --- Cancel ---
-        if (upperMsg === 'CANCEL') {
-            session.state = 'IDLE';
-            session.pendingData = null;
-            await botReply(msg, '❌ Cancel ho gaya. Naya kaam likho dobara try karne ke liye.');
-            return;
-        }
+    if (isCancel) {
+        session.state = 'IDLE';
+        session.pendingData = null;
+        await botReply(msg, '❌ Cancel ho gaya. Naya *WORK: ...* bhejo retry karne ke liye.');
+        return;
+    }
 
-        // --- Login time badalna (optional) ---
-        if (upperMsg.startsWith('LOGIN ')) {
-            const timePart = messageBody.split(' ')[1];  // "10:30"
-            if (!/^\d{1,2}:\d{2}$/.test(timePart)) {
-                await botReply(msg, '❌ Galat format. Aise likho: LOGIN HH:MM (jaise LOGIN 10:30)');
-                return;
-            }
-            session.pendingData.loginTime = timePart;
-            await botReply(msg, `✅ Login time ab ${timePart}. *YES* bhejo confirm karne ke liye ya *CANCEL*.`);
-            return;
-        }
+    if (loginMatch) {
+        const timePart = loginMatch[1];
+        session.pendingData.loginTime = timePart;
+        await botReply(msg, `✅ Login time ab *${timePart}*. *YES* bhejo confirm karne ke liye ya *CANCEL*.`);
+        return;
+    }
 
-        // --- Confirm → pre-filled link bhejo ---
-        if (upperMsg === 'YES') {
-            // Bhara-bharaya Google Form link banao
-            const url = buildPrefilledUrl(
-                profile,
-                session.pendingData.natureOfWork,
-                session.pendingData.loginTime,
-                session.pendingData.logoutTime
-            );
-
-            // 12-hour format banao backup ke liye (agar form mein time auto-fill na ho)
-            const loginDisp = to12Hour(session.pendingData.loginTime);
-            const logoutDisp = to12Hour(session.pendingData.logoutTime);
-
-            await botReply(msg,
-                `✅ *Tumhara bhara-bharaya form link tayyar hai!*\n\n` +
-                `👇 Is link ko apne phone pe tap karo. Form tumhare Chrome mein, tumhare Gmail se khulega.\n\n` +
-                `${url}\n\n` +
-                `📌 *Submit dabane se pehle TIME check karo:*\n` +
-                `🕐 Login: *${session.pendingData.loginTime}* (${loginDisp})\n` +
-                `🕕 Logout: *${session.pendingData.logoutTime}* (${logoutDisp})\n` +
-                `_(Google Forms kabhi time auto-fill nahi karta — agar khaali ho to ye values khud bhar lena, 5 sec kaam hai.)_\n\n` +
-                `⚠️ Submit dabana mat bhoolna — tabhi attendance lagegi!`
-            );
-
-            // Link bhej diya → aaj ke reminder band (maan lete hain submit kar doge)
-            markSubmittedToday(senderId);
-
-            session.state = 'IDLE';
-            session.pendingData = null;
-            return;
-        }
-
-        // --- Kuch aur bheja ---
-        await botReply(msg,
-            '⚠️ Confirmation ka intezaar hai.\n' +
-            '*YES* = link bhejo | *LOGIN HH:MM* = login time badlo | *CANCEL* = radd karo'
+    if (isYes) {
+        const url = buildPrefilledUrl(
+            profile,
+            session.pendingData.natureOfWork,
+            session.pendingData.loginTime,
+            session.pendingData.logoutTime
         );
+        const loginDisp  = to12Hour(session.pendingData.loginTime);
+        const logoutDisp = to12Hour(session.pendingData.logoutTime);
+
+        await botReply(msg,
+            `✅ *Tumhara bhara-bharaya form link tayyar hai!*\n\n` +
+            `👇 Is link ko apne phone pe tap karo. Form tumhare Chrome mein, tumhare Gmail se khulega.\n\n` +
+            `${url}\n\n` +
+            `📌 *Submit dabane se pehle TIME check karo:*\n` +
+            `🕐 Login: *${session.pendingData.loginTime}* (${loginDisp})\n` +
+            `🕕 Logout: *${session.pendingData.logoutTime}* (${logoutDisp})\n` +
+            `_(Google Forms kabhi time auto-fill nahi karta — agar khaali ho to ye values khud bhar lena, 5 sec kaam hai.)_\n\n` +
+            `⚠️ Submit dabana mat bhoolna — tabhi attendance lagegi!`
+        );
+
+        markSubmittedToday(senderId);
+        session.state = 'IDLE';
+        session.pendingData = null;
         return;
     }
 }

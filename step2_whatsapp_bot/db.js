@@ -46,27 +46,64 @@ async function connect() {
 }
 
 /**
- * Ek mobile number ka profile dhoondho.
- * @param {string} whatsappId - "919835262809@c.us" ya "...@lid" ya sirf number
- * @returns {Promise<object|null>}
+ * Profile dhoondho. Pehle whatsapp_id (full @c.us or @lid) ke base par,
+ * phir mobile number ke base par (fallback for @c.us numbers).
+ *
+ * WHY two-step lookup?
+ *   @lid users ka asli mobile WhatsApp Web API se reliably nikalta nahi.
+ *   So jab woh "LINK SUM26..." command bhejte hain, hum unka @lid DB mein
+ *   save karte hain (whatsapp_id field). Future messages mein @lid se hi
+ *   lookup ho jata hai.
+ *
+ * @param {string} whatsappId - "919835262809@c.us" ya "243...@lid"
  */
 async function getUserByMobile(whatsappId) {
-    // @c.us / @lid hatao, sirf number rakho
-    const number = String(whatsappId).replace('@c.us', '').replace('@lid', '').replace(/[+\s]/g, '');
+    const fullId = String(whatsappId);           // e.g. "243...@lid"
+    const numberOnly = fullId.replace('@c.us', '').replace('@lid', '').replace(/[+\s]/g, '');
 
     if (usingCloud()) {
         await connect();
-        // MongoDB se number match karke profile lao
-        return await _db.collection('users').findOne({ mobile: number });
+        // $or: whatsapp_id match kare ya mobile match kare
+        return await _db.collection('users').findOne({
+            $or: [
+                { whatsapp_id: fullId },
+                { mobile: numberOnly }
+            ]
+        });
     } else {
-        // LOCAL: users/ folder ki har file padho, number match karo
         if (!fs.existsSync(USERS_DIR)) return null;
         const files = fs.readdirSync(USERS_DIR).filter(f => f.endsWith('.json'));
         for (const file of files) {
             const p = JSON.parse(fs.readFileSync(path.join(USERS_DIR, file), 'utf8'));
-            if (p.mobile && p.mobile.replace(/[+\s]/g, '') === number) return p;
+            if (p.whatsapp_id === fullId) return p;
+            if (p.mobile && p.mobile.replace(/[+\s]/g, '') === numberOnly) return p;
         }
         return null;
+    }
+}
+
+/**
+ * User ke profile mein whatsapp_id (LID/cus) save karo — LINK command ke baad.
+ * @param {string} internshipId - kaunsa profile update karna hai
+ * @param {string} whatsappId   - user ka full @lid ya @c.us
+ * @returns {Promise<boolean>}  - true if matched aur updated
+ */
+async function linkWhatsappId(internshipId, whatsappId) {
+    if (usingCloud()) {
+        await connect();
+        const result = await _db.collection('users').updateOne(
+            { internship_id: internshipId },
+            { $set: { whatsapp_id: whatsappId } }
+        );
+        return result.matchedCount > 0;
+    } else {
+        if (!fs.existsSync(USERS_DIR)) return false;
+        const filePath = path.join(USERS_DIR, internshipId + '.json');
+        if (!fs.existsSync(filePath)) return false;
+        const profile = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        profile.whatsapp_id = whatsappId;
+        fs.writeFileSync(filePath, JSON.stringify(profile, null, 2));
+        return true;
     }
 }
 
@@ -86,4 +123,4 @@ async function getAllUsers() {
     }
 }
 
-module.exports = { connect, usingCloud, getUserByMobile, getAllUsers };
+module.exports = { connect, usingCloud, getUserByMobile, getAllUsers, linkWhatsappId };
