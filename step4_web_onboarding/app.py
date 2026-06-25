@@ -189,7 +189,14 @@ def short_redirect(short_id):
     """
     record = get_shortlink(short_id)
     if not record:
-        return "Link expired or invalid.", 404
+        return render_template('link_expired.html'), 410   # 410 Gone = used to exist
+
+    # Expiry check (in case TTL hasn't swept it yet, OR user clicks moments after deadline).
+    # We compare against UTC now since MongoDB stores in UTC.
+    expires_at = record.get('expires_at')
+    if expires_at and datetime.utcnow() > expires_at:
+        return render_template('link_expired.html'), 410
+
     increment_shortlink_clicks(short_id)
     return redirect(record['full_url'], code=302)
 

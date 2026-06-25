@@ -123,27 +123,53 @@ async function getAllUsers() {
     }
 }
 
+// Short links 30 minutes ke liye valid rehte hain.
+// WHY safety: pre-filled URL mein user ka mobile aur saari details hoti hain.
+// Agar link kahin leak ho jaye, expiry ke baad woh kisi kaam ki nahi.
+const SHORTLINK_TTL_MS = 30 * 60 * 1000;  // 30 min in milliseconds
+
+// One-time setup: MongoDB ko bolo "expires_at field 0 second baad delete kar do".
+// expireAfterSeconds: 0 = "exact time at expires_at pe delete". MongoDB har minute
+// check karta hai aur expired docs hata deta hai — auto cleanup, hum kuch nahi karte.
+let _ttlIndexReady = false;
+async function ensureTtlIndex() {
+    if (_ttlIndexReady || !usingCloud()) return;
+    await connect();
+    try {
+        await _db.collection('shortlinks').createIndex(
+            { expires_at: 1 },
+            { expireAfterSeconds: 0, name: 'expires_at_ttl' }
+        );
+        _ttlIndexReady = true;
+    } catch (e) {
+        // Index already exists with same/different options — non-fatal
+        console.log('[DB] TTL index note:', e.message);
+        _ttlIndexReady = true;
+    }
+}
+
 /**
- * Short link banao aur DB mein save karo.
+ * Short link banao aur DB mein save karo. 30 min ke baad apne aap expire.
  * @param {string} fullUrl       — Google Forms ka pura pre-filled URL
  * @param {string} internshipId  — kis user ne banaya
- * @returns {Promise<string|null>} — short_id (e.g. "k7m2pq") ya null agar cloud nahi
- *
- * Short URL format: <site>/r/<short_id>
+ * @returns {Promise<{shortId, expiresAt}|null>}
  */
 async function saveShortLink(fullUrl, internshipId) {
-    if (!usingCloud()) return null;  // local mode mein shortener nahi
+    if (!usingCloud()) return null;
     await connect();
-    // 6-char random base36 ID (~2 billion combinations — collisions negligible at scale)
+    await ensureTtlIndex();
     const shortId = Math.random().toString(36).slice(2, 8);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + SHORTLINK_TTL_MS);
     await _db.collection('shortlinks').insertOne({
         short_id: shortId,
         full_url: fullUrl,
         internship_id: internshipId,
         clicks: 0,
-        created_at: new Date()
+        created_at: now,
+        expires_at: expiresAt
     });
-    return shortId;
+    return { shortId, expiresAt };
 }
 
 /**

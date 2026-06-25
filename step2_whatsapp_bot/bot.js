@@ -714,9 +714,13 @@ async function handleMessage(msg) {
         // Short link banao — full Google Forms URL ki jagah chhota apna domain link.
         // Agar cloud mode mein nahi (local dev), fallback to full URL.
         let displayUrl = fullUrl;
+        let expiresAt = null;
         try {
-            const shortId = await db.saveShortLink(fullUrl, profile.internship_id);
-            if (shortId) displayUrl = `${BOT_CONFIG.SHORT_BASE}/r/${shortId}`;
+            const r = await db.saveShortLink(fullUrl, profile.internship_id);
+            if (r?.shortId) {
+                displayUrl = `${BOT_CONFIG.SHORT_BASE}/r/${r.shortId}`;
+                expiresAt = r.expiresAt;
+            }
         } catch (e) {
             console.error('[ShortLink] save fail:', e.message);
         }
@@ -735,9 +739,19 @@ async function handleMessage(msg) {
             ? `\n_(Link #${stats.todayCount} for today)_`
             : '';
 
+        // Expiry line — "valid till HH:MM" so user knows the deadline.
+        let expiryLine = '';
+        if (expiresAt) {
+            const e = new Date(expiresAt);
+            const hh = String(e.getHours()).padStart(2, '0');
+            const mm = String(e.getMinutes()).padStart(2, '0');
+            expiryLine = `⏳ *Link expires at ${hh}:${mm}* (30 min) — for safety.\n\n`;
+        }
+
         await botReply(msg,
             `✅ *Your pre-filled form link is ready!*${countLine}\n\n` +
             `👉 ${displayUrl}\n\n` +
+            expiryLine +
             `📌 *Before submitting, check the TIME fields:*\n` +
             `🕐 Login: *${session.pendingData.loginTime}* (${loginDisp})\n` +
             `🕕 Logout: *${session.pendingData.logoutTime}* (${logoutDisp})\n` +
