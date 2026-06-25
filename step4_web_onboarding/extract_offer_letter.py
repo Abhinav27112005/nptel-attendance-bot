@@ -33,13 +33,20 @@ def extract_text_from_pdf(pdf_path: str) -> str:
     """
     PDF ke saare pages ka text ek string mein nikalta hai.
 
-    HOW: pdfplumber har page kholta hai, extract_text() us page ka text deta hai.
-         Hum sab jod ke ek bada string banate hain.
+    LEARNING CONCEPT: layout=True
+        Kuch NPTEL offer letters "fillable PDF" hote hain — values labels
+        ke SAME y-coordinate pe overlay hote hain par alag text-layer pe.
+        Default extract_text() un overlay values ko MISS kar deta hai!
+        layout=True spatial layout preserve karta hai (column-aligned text
+        with spaces), jisse overlay values bhi sahi line pe aa jaate hain.
+
+        clean_stray()/no_spaces() helpers extra spaces handle kar lete hain.
     """
     full_text = ""
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            page_text = page.extract_text() or ""  # None aaye to khaali
+            # layout=True zaroori hai fillable-form PDFs ke liye
+            page_text = page.extract_text(layout=True) or ""
             full_text += page_text + "\n"
     return full_text
 
@@ -59,21 +66,24 @@ def find(pattern: str, text: str, default: str = "") -> str:
 
 def clean_stray(v: str) -> str:
     """
-    PDF artifact theek karta hai: is offer letter mein har value ke PEHLE character
-    ke baad ek extra (stray) space ghus jata hai.
-      "P rof. Prabhjot..." → "Prof. Prabhjot..."
-      "I IT Roorkee"       → "IIT Roorkee"
-      "I n-person"         → "In-person"
-      "1 2 weeks"          → "12 weeks"
+    NPTEL offer letter PDFs mein font rendering ki wajah se stray spaces
+    aate hain. Do tarah ke artifacts hain:
+      1) LETTER artifact: "P rof. Prabhjot" → "Prof. Prabhjot"
+                          "I IT Roorkee"    → "IIT Roorkee"
+      2) DIGIT artifact:  "1 2 weeks"       → "12 weeks"
+                          "1 9-05-2026"     → "19-05-2026"
 
-    HOW: agar doosra character (index 1) space hai, to use hata do.
-         Agar PDF saaf ho (artifact na ho), to index 1 space nahi hoga →
-         kuch nahi badlega. Isliye safe hai.
+    Lekin "8 weeks" jaise valid space ko touch NAHI karna —
+    isliye sirf specific patterns pe collapse karte hain.
     """
     v = v.strip()
-    if len(v) > 1 and v[1] == ' ':
+    # 1) Letter-stray: "LETTER SPACE LETTER..." → drop the space at index 1
+    if len(v) > 2 and v[0].isalpha() and v[1] == ' ' and v[2].isalpha():
         v = v[0] + v[2:]
-    # do ya zyada spaces ek mein badlo
+    # 2) Digit-stray: "DIGIT SPACE DIGIT" → collapse the space
+    #    (multi-digit numbers like "12" rendered as "1 2")
+    v = re.sub(r'(\d) (\d)', r'\1\2', v)
+    # Multi-spaces → single space
     v = re.sub(r'\s{2,}', ' ', v)
     return v.strip()
 
@@ -96,46 +106,40 @@ def convert_date(ddmmyyyy: str) -> str:
     return ddmmyyyy  # format alag ho to jaisa hai waisa hi
 
 
+def extract_label_based(text: str) -> dict:
+    """
+    PURANA FORMAT — values labels ke saath inline hoti hain.
+    Example:
+      "Internship ID: SUM260130 Date: 18-05-2026"
+      "Dear Abhinav Kumar Jha,"
+      "1. Name of the Professor : Prof. Prabhjot Singh Chani"
+    """
+    return {
+        "internship_id": no_spaces(find(r"Internship ID\s*:?\s*(.+?)\s*Date", text)),
+        # "Dear Abhinav Kumar Jha," (old, with comma) ya
+        # "Dear Abhishek Anand        " (new, no comma — ends with multi-spaces or newline)
+        "name":          clean_stray(find(r"Dear\s+([A-Za-z][A-Za-z\s.]*?)(?:,|\s{2,}|\n|$)", text)),
+        "professor":     clean_stray(find(r"Name of the Professor\s*:?\s*(.+)", text)),
+        "institute":     clean_stray(find(r"offering Institute\s*:?\s*(.+)", text)),
+        "mode":          clean_stray(find(r"Mode of internship\s*:?\s*(.+)", text)),
+        "duration":      clean_stray(find(r"Duration of internship\s*:?\s*(.+)", text)),
+        "start_date":    convert_date(no_spaces(find(r"Start date\s*:?\s*([\d -]+)", text))),
+        "end_date":      convert_date(no_spaces(find(r"End date\s*:?\s*([\d -]+)", text))),
+    }
+
+
 def extract_offer_letter(pdf_path: str) -> dict:
     """
-    Offer letter PDF se saare fields nikaal ke ek dict banata hai.
+    Offer letter PDF se fields nikalo. layout=True (extract_text_from_pdf
+    mein) dono format handle kar leta hai — purana (values inline) aur
+    naya (fillable PDF jisme values labels pe overlay hoti hain).
 
-    Returns: profile dict (mobile aur gmail ke bina — woh user daalega)
+    Returns: profile dict (mobile + default_login_time user dega website pe).
     """
     text = extract_text_from_pdf(pdf_path)
-
-    # Har field ke liye ek regex. Label specific hai isliye galat match nahi hoga.
-    # Phir clean_stray/no_spaces se PDF ka stray-space artifact theek karte hain.
-    profile = {
-        # "Internship ID: SUM26 0130 Date:..." → ID tak capture, space hatao → "SUM260130"
-        "internship_id": no_spaces(find(r"Internship ID\s*:?\s*(.+?)\s*Date", text)),
-
-        # "Dear Abhinav Kumar Jha," → Abhinav Kumar Jha
-        "name": clean_stray(find(r"Dear\s+(.+?),", text)),
-
-        # "1. Name of the Professor : P rof. Prabhjot Singh Chani"
-        "professor": clean_stray(find(r"Name of the Professor\s*:?\s*(.+)", text)),
-
-        # "2. Internship offering Institute : I IT Roorkee"
-        "institute": clean_stray(find(r"offering Institute\s*:?\s*(.+)", text)),
-
-        # "3. Mode of internship : I n-person"
-        "mode": clean_stray(find(r"Mode of internship\s*:?\s*(.+)", text)),
-
-        # "4. Duration of internship : 1 2 weeks"
-        "duration": clean_stray(find(r"Duration of internship\s*:?\s*(.+)", text)),
-
-        # "5. Start date : 1 9-05-2026" → space hatao → 19-05-2026 → convert → 2026-05-19
-        # NOTE: [\d -]+ use kiya (\s nahi) taaki newline match na ho aur agli line na uthe.
-        "start_date": convert_date(no_spaces(find(r"Start date\s*:?\s*([\d -]+)", text))),
-
-        # "6. End date : 1 0-08-2026" → 2026-08-10
-        "end_date": convert_date(no_spaces(find(r"End date\s*:?\s*([\d -]+)", text))),
-
-        # Ye user khud register karte waqt daalega (PDF mein nahi hote)
-        "mobile": "",
-        "default_login_time": "09:45",
-    }
+    profile = extract_label_based(text)
+    profile['mobile'] = ''
+    profile['default_login_time'] = '09:45'
     return profile
 
 

@@ -585,18 +585,12 @@ async function handleMessage(msg) {
 
     // ---------------------------------------------------------
     // Iske aage saare commands ke liye REGISTRATION zaroori
+    // Registered nahi? → silent ignore. User REGISTER bhejega to upar link mil jata hai.
     // ---------------------------------------------------------
     const { profile } = await findUserByMessage(msg);
 
     if (!profile) {
-        // Recognized command bheji par registered nahi — onboarding hint do
-        console.log(`[Auth] Unregistered (from=${senderId}) — sending onboard hint`);
-        await botReply(msg,
-            `👋 Pehli baar? Ye karo:\n\n` +
-            `1️⃣ Website pe register karo: ${BOT_CONFIG.REGISTER_URL}\n` +
-            `2️⃣ WhatsApp pe bhejo: *LINK <your-internship-id>*\n\n` +
-            `Ya bas *REGISTER* bhejo — link milega.`
-        );
+        console.log(`[Auth] Unregistered (from=${senderId}) — silent`);
         return;
     }
     console.log(`[Auth] ${profile.name} — processing`);
