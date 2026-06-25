@@ -20,7 +20,7 @@
 #   (Dost ke phone se: http://<laptop-ka-WiFi-IP>:5000)
 # =============================================================================
 
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, redirect, abort
 import os
 import json
 import re
@@ -31,12 +31,16 @@ from werkzeug.utils import secure_filename  # filename ko safe banata hai
 from extract_offer_letter import extract_offer_letter
 
 # Data layer — profile MongoDB ya local files mein save karta hai
-from db import save_user, using_cloud, find_user
+from db import save_user, using_cloud, find_user, get_shortlink, increment_shortlink_clicks
 
 # Cloudinary — offer letter PDF cloud pe store karne ke liye
 from cloud_storage import upload_pdf
 
 app = Flask(__name__)
+
+# Bot ka WhatsApp number — wa.me link banane ke liye (verify button).
+# Env var se aata hai taaki code mein hardcoded na ho.
+BOT_WHATSAPP_NUMBER = os.environ.get('BOT_WHATSAPP_NUMBER', '919835262809')
 
 # --- FOLDERS -----------------------------------------------------------------
 USERS_DIR = os.path.join(os.path.dirname(__file__), '..', 'users')          # profiles
@@ -148,9 +152,18 @@ def register():
     print(f"[Register] Saved {profile['internship_id']} ({'cloud' if using_cloud() else 'local'})")
 
     # --- 8. Success — extracted details wapas bhejo (user verify kar le) ---
+    # WhatsApp verify link: user is link pe click karega → unka WhatsApp
+    # khulega bot ki chat ke saath "LINK SUM260111" pre-filled. Bas Send
+    # dabana hai. Bot @lid ko profile se link kar dega — koi typing nahi.
+    verify_url = (
+        f"https://wa.me/{BOT_WHATSAPP_NUMBER}"
+        f"?text=LINK%20{profile['internship_id']}"
+    )
+
     return jsonify({
         "success": True,
-        "message": "Registration ho gaya! Ab WhatsApp pe 'WORK: ...' bhej ke attendance lo.",
+        "message": "Registration ho gaya! Niche 'Verify on WhatsApp' button dabao.",
+        "verify_url": verify_url,
         "profile": {
             "internship_id": profile['internship_id'],
             "name": profile['name'],
@@ -163,6 +176,22 @@ def register():
             "mobile": profile['mobile'],
         }
     })
+
+
+@app.route('/r/<short_id>')
+def short_redirect(short_id):
+    """
+    Short link redirect: /r/k7m2pq → asli Google Forms pre-filled URL.
+
+    WHY: WhatsApp pe Google Forms ka long URL bhejne se ugly + suspicious lagta hai.
+         Hum apne domain pe ek chhota link bhejte hain → click pe redirect.
+         Side benefit: click count track kar sakte hain.
+    """
+    record = get_shortlink(short_id)
+    if not record:
+        return "Link expired or invalid.", 404
+    increment_shortlink_clicks(short_id)
+    return redirect(record['full_url'], code=302)
 
 
 if __name__ == '__main__':

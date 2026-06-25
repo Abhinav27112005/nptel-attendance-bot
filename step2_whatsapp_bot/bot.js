@@ -100,6 +100,10 @@ const BOT_CONFIG = {
     // Render pe deployed (hamesha online, dost ke phone se bhi khulega).
     REGISTER_URL: 'https://nptel-attendance-bot.onrender.com',
 
+    // Short link ka base URL — yeh + "/r/" + short_id. WhatsApp pe full
+    // Google Forms URL ki jagah ye chhota link bhejte hain (security/clean).
+    SHORT_BASE: 'https://nptel-attendance-bot.onrender.com',
+
     // Your WhatsApp number with country code (no + or spaces)
     // PHASE 1 (single user): only this number can trigger the bot.
     // PHASE 2 (multi-user): we'll check the users/ folder instead.
@@ -604,20 +608,48 @@ async function handleMessage(msg) {
         const cmd = trimmed.slice(1).toLowerCase();
         if (cmd === 'help') {
             await botReply(msg,
-                `*NPTEL Attendance Bot* 🤖\n\n` +
-                `Attendance bharne ke liye aise likho:\n` +
-                `*WORK: aaj jo kaam kiya uska ek line description*\n\n` +
-                `Phir summary → *YES* → bhara-bharaya form link.\n\n` +
-                `*Commands:*\n` +
-                `REGISTER - registration / status\n` +
-                `LINK <id> - account link karo\n` +
-                `WORK: ... - attendance shuru\n` +
-                `YES / CANCEL - confirm / radd\n` +
-                `LOGIN HH:MM - login time badlo\n` +
-                `!help / !status`
+                `*NPTEL Attendance Bot — Commands* 🤖\n` +
+                `━━━━━━━━━━━━━━━━━━━━\n\n` +
+                `📝 *WORK:* <kaam ka description>\n` +
+                `   _Attendance shuru karo._\n` +
+                `   Example: \`WORK: Aaj data scraping kiya\`\n\n` +
+                `✅ *YES* — confirm karke link lo\n` +
+                `❌ *CANCEL* — radd karo\n` +
+                `🕐 *LOGIN HH:MM* — login time badlo (jaise \`LOGIN 10:30\`)\n\n` +
+                `🔵 *REGISTER* — registration link\n` +
+                `🟢 *!status* — apna status dekho (kitne link aaj banaye)\n` +
+                `🟡 *!help* — ye message`
             );
         } else {
-            await botReply(msg, `Bot chal raha hai ✅\nUser: ${profile.name}\nState: ${session.state}`);
+            // !status — registered status + aaj ka link count + last link time
+            let countLine = '🔢 Aaj ke links: *0*';
+            let lastLine = '';
+            try {
+                const s = await db.getLinkStats(profile.internship_id);
+                if (s) {
+                    countLine = `🔢 Aaj ke links: *${s.count}*`;
+                    if (s.last_at) {
+                        const lastAt = new Date(s.last_at);
+                        const hh = String(lastAt.getHours()).padStart(2, '0');
+                        const mm = String(lastAt.getMinutes()).padStart(2, '0');
+                        lastLine = `\n⏰ Last link: *${hh}:${mm}*`;
+                    }
+                }
+            } catch (e) { /* ignore stats fail */ }
+
+            const generated = countLine.includes('*0*')
+                ? '_Aaj abhi tak attendance link nahi banaya — `WORK: ...` bhejo._'
+                : `_Link ban chuka hai, woh khol ke submit kar do._`;
+
+            await botReply(msg,
+                `📊 *Tumhara Status*\n` +
+                `━━━━━━━━━━━━━━━━━━━━\n` +
+                `🟢 Status: *Registered*\n` +
+                `👤 Name: ${profile.name}\n` +
+                `🆔 ID: ${profile.internship_id}\n\n` +
+                `${countLine}${lastLine}\n\n` +
+                `${generated}`
+            );
         }
         return;
     }
@@ -668,23 +700,44 @@ async function handleMessage(msg) {
     }
 
     if (isYes) {
-        const url = buildPrefilledUrl(
+        const fullUrl = buildPrefilledUrl(
             profile,
             session.pendingData.natureOfWork,
             session.pendingData.loginTime,
             session.pendingData.logoutTime
         );
+
+        // Short link banao — full Google Forms URL ki jagah chhota apna domain link.
+        // Agar cloud mode mein nahi (local dev), fallback to full URL.
+        let displayUrl = fullUrl;
+        try {
+            const shortId = await db.saveShortLink(fullUrl, profile.internship_id);
+            if (shortId) displayUrl = `${BOT_CONFIG.SHORT_BASE}/r/${shortId}`;
+        } catch (e) {
+            console.error('[ShortLink] save fail:', e.message);
+        }
+
+        // Aaj ka counter badhao (status mein dikhane ke liye)
+        let stats = { todayCount: 1 };
+        try {
+            stats = await db.recordLinkGenerated(profile.internship_id);
+        } catch (e) {
+            console.error('[Stats] record fail:', e.message);
+        }
+
         const loginDisp  = to12Hour(session.pendingData.loginTime);
         const logoutDisp = to12Hour(session.pendingData.logoutTime);
+        const countLine = stats.todayCount > 1
+            ? `\n_(Aaj ka ${stats.todayCount}vaan link)_`
+            : '';
 
         await botReply(msg,
-            `✅ *Tumhara bhara-bharaya form link tayyar hai!*\n\n` +
-            `👇 Is link ko apne phone pe tap karo. Form tumhare Chrome mein, tumhare Gmail se khulega.\n\n` +
-            `${url}\n\n` +
+            `✅ *Tumhara bhara-bharaya form link tayyar!*${countLine}\n\n` +
+            `👉 ${displayUrl}\n\n` +
             `📌 *Submit dabane se pehle TIME check karo:*\n` +
             `🕐 Login: *${session.pendingData.loginTime}* (${loginDisp})\n` +
             `🕕 Logout: *${session.pendingData.logoutTime}* (${logoutDisp})\n` +
-            `_(Google Forms kabhi time auto-fill nahi karta — agar khaali ho to ye values khud bhar lena, 5 sec kaam hai.)_\n\n` +
+            `_(Google Forms time auto-fill nahi karta — khaali ho to khud bhar lena.)_\n\n` +
             `⚠️ Submit dabana mat bhoolna — tabhi attendance lagegi!`
         );
 

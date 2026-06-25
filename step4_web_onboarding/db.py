@@ -9,6 +9,7 @@
 import os
 import json
 import base64
+from datetime import datetime
 
 # .env load karo (project root se). dotenv na ho to ignore.
 try:
@@ -110,6 +111,22 @@ def find_user(internship_id: str = None, mobile: str = None) -> dict | None:
             if mobile and p.get('mobile', '').replace('+', '').replace(' ', '') == mobile:
                 return p
         return None
+
+
+def get_shortlink(short_id: str) -> dict | None:
+    """Short ID se full URL ka record laao (Flask /r/<id> ke liye)."""
+    if using_cloud():
+        return _get_db().shortlinks.find_one({'short_id': short_id})
+    return None
+
+
+def increment_shortlink_clicks(short_id: str):
+    """Click count badhao analytics ke liye."""
+    if using_cloud():
+        _get_db().shortlinks.update_one(
+            {'short_id': short_id},
+            {'$inc': {'clicks': 1}, '$set': {'last_clicked': datetime.now()}}
+        )
 
 
 def get_all_users() -> list:

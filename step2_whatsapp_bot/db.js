@@ -123,4 +123,59 @@ async function getAllUsers() {
     }
 }
 
-module.exports = { connect, usingCloud, getUserByMobile, getAllUsers, linkWhatsappId };
+/**
+ * Short link banao aur DB mein save karo.
+ * @param {string} fullUrl       — Google Forms ka pura pre-filled URL
+ * @param {string} internshipId  — kis user ne banaya
+ * @returns {Promise<string|null>} — short_id (e.g. "k7m2pq") ya null agar cloud nahi
+ *
+ * Short URL format: <site>/r/<short_id>
+ */
+async function saveShortLink(fullUrl, internshipId) {
+    if (!usingCloud()) return null;  // local mode mein shortener nahi
+    await connect();
+    // 6-char random base36 ID (~2 billion combinations — collisions negligible at scale)
+    const shortId = Math.random().toString(36).slice(2, 8);
+    await _db.collection('shortlinks').insertOne({
+        short_id: shortId,
+        full_url: fullUrl,
+        internship_id: internshipId,
+        clicks: 0,
+        created_at: new Date()
+    });
+    return shortId;
+}
+
+/**
+ * Daily link counter — kis user ne aaj kitne link banaye + last time.
+ * Reminder marking ke alag se rakhte hain (yeh "kitne baar tried"; reminder "submit ho gaya assume").
+ */
+async function recordLinkGenerated(internshipId) {
+    if (!usingCloud()) return { todayCount: 1, lastAt: new Date() };
+    await connect();
+    const today = new Date().toISOString().slice(0, 10);  // "2026-06-22"
+    const res = await _db.collection('link_stats').findOneAndUpdate(
+        { internship_id: internshipId, date: today },
+        { $inc: { count: 1 }, $set: { last_at: new Date() } },
+        { upsert: true, returnDocument: 'after' }
+    );
+    const doc = res?.value || res;  // mongo driver versions ka diff
+    return {
+        todayCount: doc?.count || 1,
+        lastAt: doc?.last_at || new Date()
+    };
+}
+
+async function getLinkStats(internshipId) {
+    if (!usingCloud()) return null;
+    await connect();
+    const today = new Date().toISOString().slice(0, 10);
+    return await _db.collection('link_stats').findOne({
+        internship_id: internshipId, date: today
+    });
+}
+
+module.exports = {
+    connect, usingCloud, getUserByMobile, getAllUsers, linkWhatsappId,
+    saveShortLink, recordLinkGenerated, getLinkStats
+};

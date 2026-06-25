@@ -69,8 +69,14 @@
                 if (data.success) {
                     const p = data.profile;
                     resultDiv.className = 'success';
+                    // Verify-on-WhatsApp button: user click karega → unka WA khulega
+                    // bot ke chat ke saath "LINK <id>" pre-filled → bas Send dabana hai.
+                    const verifyBtn = data.verify_url
+                        ? `<a href="${data.verify_url}" target="_blank" style="display:block;text-align:center;background:#25D366;color:#fff;padding:14px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0 8px;">📱 Verify on WhatsApp →</a>
+                           <div class="hint" style="text-align:center;color:#555;margin-bottom:12px;">Button dabao, WhatsApp khulega, bas <b>Send</b> dabana — ho gaya!</div>`
+                        : '';
                     resultDiv.innerHTML =
-                        `✅ <b>${data.message}</b><br><br>` +
+                        `✅ <b>${data.message}</b>` + verifyBtn +
                         `<div class="row"><span>ID</span><b>${p.internship_id}</b></div>` +
                         `<div class="row"><span>Name</span><b>${p.name}</b></div>` +
                         `<div class="row"><span>Institute</span><b>${p.institute}</b></div>` +

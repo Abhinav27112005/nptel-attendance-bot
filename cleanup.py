@@ -39,7 +39,7 @@ def wipe_mongo():
         from pymongo import MongoClient
         client = MongoClient(uri)
         db = client['attendanceauto']
-        for coll_name in ['users', 'offer_letters']:
+        for coll_name in ['users', 'offer_letters', 'shortlinks', 'link_stats']:
             if coll_name in db.list_collection_names():
                 count = db[coll_name].count_documents({})
                 db.drop_collection(coll_name)
