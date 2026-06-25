@@ -134,24 +134,56 @@ def register():
         os.remove(temp_path)
         return jsonify({"error": "PDF se Internship ID nahi mili. Sahi NPTEL offer letter upload karo."}), 400
 
-    # --- 5b. Duplicate check — pehle se registered ho to roko ---
+    # --- 5b. Duplicate check — pehle se registered ho to "already registered" deta hai,
+    #         lekin error nahi — frontend ko sab kuch deta hai taaki user ko
+    #         "Verify on WhatsApp" button + summary card dikha sake (jaise fresh
+    #         registration ke baad). LINK abhi tak nahi hua to button tap karke
+    #         flow complete kar lega.
     existing = find_user(internship_id=profile['internship_id'], mobile=mobile)
     if existing:
         os.remove(temp_path)
-        # Conflict ka pata user ko exact wajah ke saath do
-        if existing.get('internship_id') == profile['internship_id']:
-            reason = f"Internship ID {profile['internship_id']} pehle se registered hai ({existing.get('name')})."
+        # WhatsApp link button — wahi format jaisa fresh registration mein hai.
+        verify_url = (
+            f"https://wa.me/{BOT_WHATSAPP_NUMBER}"
+            f"?text=LINK%20{existing.get('internship_id', '')}"
+        )
+        # Conflict ki wajah (kahaan match hua)
+        matched_by_id = existing.get('internship_id') == profile['internship_id']
+        match_field = "Internship ID" if matched_by_id else "Mobile number"
+        already_linked = bool(existing.get('whatsapp_id'))
+
+        # User-friendly message — already linked vs needs LINK
+        if already_linked:
+            message = (
+                f"Already registered & linked! "
+                f"Just send *WORK: ...* on WhatsApp to mark attendance."
+            )
         else:
-            reason = f"Ye mobile number ({mobile}) pehle se registered hai as {existing.get('name')} ({existing.get('internship_id')})."
+            message = (
+                f"Already registered (matched by {match_field}). "
+                f"One more step: tap the green button below to link your WhatsApp."
+            )
+
+        # Frontend HTTP 200 + already_registered=true ko same success card jaisi
+        # treat karega — error red box ki jagah sundar info card.
         return jsonify({
-            "error": f"{reason} Dobara register karne ki zaroorat nahi — WhatsApp pe seedha 'WORK: ...' bhejo.",
+            "success": True,
             "already_registered": True,
-            "existing": {
-                "name": existing.get('name'),
-                "internship_id": existing.get('internship_id'),
-                "mobile": existing.get('mobile')
+            "already_linked": already_linked,
+            "message": message,
+            "verify_url": verify_url,
+            "profile": {
+                "internship_id": existing.get('internship_id', ''),
+                "name": existing.get('name', ''),
+                "institute": existing.get('institute', ''),
+                "professor": existing.get('professor', ''),
+                "mode": existing.get('mode', ''),
+                "duration": existing.get('duration', ''),
+                "start_date": existing.get('start_date', ''),
+                "end_date": existing.get('end_date', ''),
+                "mobile": existing.get('mobile', ''),
             }
-        }), 409   # HTTP 409 = Conflict
+        })
 
     # User ke diye fields jodo
     profile['mobile'] = mobile
