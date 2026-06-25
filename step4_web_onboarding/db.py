@@ -129,6 +129,26 @@ def increment_shortlink_clicks(short_id: str):
         )
 
 
+def get_link_stats_for(internship_id: str) -> dict | None:
+    """Today's link generation stats (count + last_at) for a user."""
+    if not using_cloud():
+        return None
+    today = datetime.now().strftime('%Y-%m-%d')
+    return _get_db().link_stats.find_one(
+        {'internship_id': internship_id, 'date': today},
+        {'_id': 0}
+    )
+
+
+def get_recent_shortlinks(limit: int = 30) -> list:
+    """Most recent shortlinks (for admin activity feed)."""
+    if not using_cloud():
+        return []
+    return list(_get_db().shortlinks.find(
+        {}, {'_id': 0}
+    ).sort('created_at', -1).limit(limit))
+
+
 def get_all_users() -> list:
     """Saare registered users (admin panel ke liye)."""
     if using_cloud():

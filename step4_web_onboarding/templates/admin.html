@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NPTEL Bot — Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --bg-elev: #11162a;
+            --card: #161c2e;
+            --card-hover: #1c2238;
+            --border: rgba(148, 163, 184, 0.10);
+            --border-strong: rgba(148, 163, 184, 0.18);
+            --text: #f1f5f9;
+            --text-dim: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --success: #10b981;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --radius: 14px;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+            /* subtle radial highlight */
+            background-image:
+                radial-gradient(900px circle at 20% -10%, rgba(59, 130, 246, 0.08), transparent 50%),
+                radial-gradient(700px circle at 95% 110%, rgba(59, 130, 246, 0.05), transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* Header */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background: rgba(10, 14, 26, 0.78);
+            border-bottom: 1px solid var(--border);
+        }
+        .header-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+        .brand h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+        .brand p {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin: 0;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .refresh-btn {
+            background: var(--card);
+            border: 1px solid var(--border-strong);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+        .refresh-btn:hover {
+            background: var(--card-hover);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 28px 24px 60px;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            transition: all 0.2s;
+        }
+        .stat-card:hover {
+            border-color: var(--border-strong);
+            transform: translateY(-2px);
+        }
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 30px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            line-height: 1;
+        }
+        .stat-sub {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 6px;
+        }
+        .stat-card .accent { color: var(--accent); }
+
+        /* Section heading */
+        .section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 32px 0 16px;
+            gap: 12px;
+        }
+        .section-head h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+        .section-head .count {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* User cards */
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 16px;
+        }
+        .user-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .user-card:hover {
+            border-color: var(--border-strong);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+        .user-head {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: start;
+            gap: 14px;
+        }
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+        .user-meta { flex: 1; min-width: 0; }
+        .user-name {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .user-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 500;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 999px;
+            margin-left: auto;
+        }
+        .badge.linked   { background: rgba(16, 185, 129, 0.12); color: var(--success); }
+        .badge.pending  { background: rgba(245, 158, 11, 0.12); color: var(--warn); }
+
+        .user-body {
+            padding: 16px 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 16px;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .field-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .field-value {
+            font-size: 13px;
+            color: var(--text);
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .field-value.mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        .field.wide { grid-column: span 2; }
+
+        .user-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: var(--bg-elev);
+            border-top: 1px solid var(--border);
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .stat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .stat-pill b {
+            color: var(--text);
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .pdf-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            padding: 7px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .pdf-link:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .pdf-link.disabled {
+            background: rgba(100, 116, 139, 0.18);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Activity table */
+        .activity-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .activity-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .activity-table th {
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            padding: 14px 20px;
+            background: var(--bg-elev);
+            border-bottom: 1px solid var(--border);
+        }
+        .activity-table td {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+        .activity-table tr:last-child td { border-bottom: 0; }
+        .activity-table tr:hover td { background: var(--bg-elev); }
+        .activity-table .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        .pill-expired { color: var(--danger); font-weight: 600; }
+        .pill-live    { color: var(--success); font-weight: 600; }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+        }
+        .empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            .header-inner { padding: 14px 16px; }
+            .container { padding: 20px 16px 40px; }
+            .users-grid { grid-template-columns: 1fr; }
+            .user-body { grid-template-columns: 1fr; }
+            .field.wide { grid-column: span 1; }
+            .activity-table th:nth-child(2),
+            .activity-table td:nth-child(2) { display: none; }
+            .stat-value { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div class="brand-icon">N</div>
+            <div>
+                <h1>NPTEL Attendance Bot</h1>
+                <p>Admin Dashboard</p>
+            </div>
+        </div>
+        <button class="refresh-btn" onclick="loadAll()" title="Reload data">
+            <span id="refreshIcon">↻</span> Refresh
+        </button>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- Aggregate stats -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="stat-label">Registered Users</div>
+            <div class="stat-value" id="statUsers">—</div>
+            <div class="stat-sub">All-time</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Linked Accounts</div>
+            <div class="stat-value accent" id="statLinked">—</div>
+            <div class="stat-sub">Have completed WhatsApp link</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Links Today</div>
+            <div class="stat-value" id="statLinksToday">—</div>
+            <div class="stat-sub">Attendance form generations</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Active Today</div>
+            <div class="stat-value" id="statActive">—</div>
+            <div class="stat-sub">Users who generated ≥1 link</div>
+        </div>
+    </div>
+
+    <!-- Users grid -->
+    <div class="section-head">
+        <h2>Registered Users</h2>
+        <span class="count" id="usersCount"></span>
+    </div>
+    <div id="usersContainer">
+        <div class="loading">Loading users…</div>
+    </div>
+
+    <!-- Recent activity -->
+    <div class="section-head" style="margin-top:36px;">
+        <h2>Recent Link Activity</h2>
+        <span class="count" id="recentCount"></span>
+    </div>
+    <div class="activity-card">
+        <table class="activity-table">
+            <thead>
+                <tr>
+                    <th>Short ID</th>
+                    <th>User</th>
+                    <th>Created</th>
+                    <th>Clicks</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="activityBody">
+                <tr><td colspan="5" class="empty">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    // Initials for the avatar block
+    function initials(name) {
+        if (!name) return '?';
+        const parts = name.trim().split(/\s+/);
+        return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+    }
+
+    // "2026-06-22T15:30:00" → "15:30" or "Jun 22, 15:30"
+    function fmtTime(iso, withDate = false) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        if (!withDate) return `${hh}:${mm}`;
+        return `${d.toLocaleDateString('en-IN', { month:'short', day:'numeric' })}, ${hh}:${mm}`;
+    }
+
+    async function loadAll() {
+        const icon = document.getElementById('refreshIcon');
+        icon.style.animation = 'spin 0.6s linear';
+        try {
+            await Promise.all([loadUsers(), loadActivity()]);
+        } finally {
+            setTimeout(() => icon.style.animation = '', 600);
+        }
+    }
+
+    async function loadUsers() {
+        const container = document.getElementById('usersContainer');
+        try {
+            const r = await fetch('/api/admin/users');
+            const data = await r.json();
+            const users = data.users || [];
+
+            // Aggregate stats
+            const linked = users.filter(u => u.whatsapp_id).length;
+            const linksToday = users.reduce((sum, u) => sum + (u.links_today || 0), 0);
+            const activeToday = users.filter(u => (u.links_today || 0) > 0).length;
+
+            document.getElementById('statUsers').textContent = users.length;
+            document.getElementById('statLinked').textContent = linked;
+            document.getElementById('statLinksToday').textContent = linksToday;
+            document.getElementById('statActive').textContent = activeToday;
+            document.getElementById('usersCount').textContent = `${users.length} total`;
+
+            if (users.length === 0) {
+                container.innerHTML = '<div class="empty">No registered users yet.</div>';
+                return;
+            }
+
+            container.innerHTML = `<div class="users-grid">${users.map(renderUserCard).join('')}</div>`;
+        } catch (e) {
+            container.innerHTML = `<div class="empty">Failed to load: ${e.message}</div>`;
+        }
+    }
+
+    function renderUserCard(u) {
+        const linked = !!u.whatsapp_id;
+        const badge = linked
+            ? `<span class="badge linked">● Linked</span>`
+            : `<span class="badge pending">○ Not linked</span>`;
+        const pdfBtn = u.offer_letter_url
+            ? `<a class="pdf-link" href="${u.offer_letter_url}" target="_blank">📄 View PDF</a>`
+            : `<span class="pdf-link disabled">No PDF</span>`;
+
+        return `
+        <div class="user-card">
+            <div class="user-head">
+                <div class="avatar">${initials(u.name)}</div>
+                <div class="user-meta">
+                    <div class="user-name">${escape(u.name) || '(no name)'}</div>
+                    <div class="user-id">${escape(u.internship_id) || '—'}</div>
+                </div>
+                ${badge}
+            </div>
+            <div class="user-body">
+                <div class="field">
+                    <span class="field-label">Mobile</span>
+                    <span class="field-value mono">${escape(u.mobile) || '—'}</span>
+                </div>
+                <div class="field">
+                    <span class="field-label">Mode</span>
+                    <span class="field-value">${escape(u.mode) || '—'}</span>
+                </div>
+                <div class="field wide">
+                    <span class="field-label">Institute</span>
+                    <span class="field-value">${escape(u.institute) || '—'}</span>
+                </div>
+                <div class="field wide">
+                    <span class="field-label">Professor</span>
+                    <span class="field-value">${escape(u.professor) || '—'}</span>
+                </div>
+                <div class="field">
+                    <span class="field-label">Duration</span>
+                    <span class="field-value">${escape(u.duration) || '—'}</span>
+                </div>
+                <div class="field">
+                    <span class="field-label">Login</span>
+                    <span class="field-value mono">${escape(u.default_login_time) || '—'}</span>
+                </div>
+                <div class="field">
+                    <span class="field-label">Start</span>
+                    <span class="field-value mono">${escape(u.start_date) || '—'}</span>
+                </div>
+                <div class="field">
+                    <span class="field-label">End</span>
+                    <span class="field-value mono">${escape(u.end_date) || '—'}</span>
+                </div>
+                <div class="field wide">
+                    <span class="field-label">Registered</span>
+                    <span class="field-value mono">${u.registered_at ? fmtTime(u.registered_at, true) : '—'}</span>
+                </div>
+            </div>
+            <div class="user-foot">
+                <span class="stat-pill">Today: <b>${u.links_today || 0}</b> link${u.links_today === 1 ? '' : 's'}</span>
+                <span class="stat-pill">Last: <b>${u.last_link_at ? fmtTime(u.last_link_at) : '—'}</b></span>
+                ${pdfBtn}
+            </div>
+        </div>`;
+    }
+
+    async function loadActivity() {
+        const tbody = document.getElementById('activityBody');
+        try {
+            const r = await fetch('/api/admin/recent');
+            const data = await r.json();
+            const items = data.shortlinks || [];
+            document.getElementById('recentCount').textContent = `${items.length} entries`;
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty">No links generated yet.</td></tr>';
+                return;
+            }
+            const now = new Date();
+            tbody.innerHTML = items.map(s => {
+                const expired = s.expires_at && new Date(s.expires_at) < now;
+                return `<tr>
+                    <td class="mono">${escape(s.short_id)}</td>
+                    <td class="mono">${escape(s.internship_id) || '—'}</td>
+                    <td>${fmtTime(s.created_at, true)}</td>
+                    <td>${s.clicks || 0}</td>
+                    <td class="${expired ? 'pill-expired' : 'pill-live'}">${expired ? 'Expired' : 'Live'}</td>
+                </tr>`;
+            }).join('');
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="5" class="empty">Failed to load: ${e.message}</td></tr>`;
+        }
+    }
+
+    // Tiny XSS-safe text inserter
+    function escape(s) {
+        if (s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // spinning refresh
+    const sheet = document.createElement('style');
+    sheet.textContent = '@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } } #refreshIcon { display:inline-block; }';
+    document.head.appendChild(sheet);
+
+    // initial load + auto-refresh every 30s
+    loadAll();
+    setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

@@ -20,18 +20,23 @@
 #   (Dost ke phone se: http://<laptop-ka-WiFi-IP>:5000)
 # =============================================================================
 
-from flask import Flask, request, render_template, jsonify, redirect, abort
+from flask import Flask, request, render_template, jsonify, redirect, Response
 import os
 import json
 import re
 from datetime import datetime
+from functools import wraps
 from werkzeug.utils import secure_filename  # filename ko safe banata hai
 
 # Apni extraction file import karo (FREE PDF reading — koi paid API nahi)
 from extract_offer_letter import extract_offer_letter
 
 # Data layer — profile MongoDB ya local files mein save karta hai
-from db import save_user, using_cloud, find_user, get_shortlink, increment_shortlink_clicks
+from db import (
+    save_user, using_cloud, find_user,
+    get_shortlink, increment_shortlink_clicks,
+    get_all_users, get_link_stats_for, get_recent_shortlinks
+)
 
 # Cloudinary — offer letter PDF cloud pe store karne ke liye
 from cloud_storage import upload_pdf
@@ -41,6 +46,29 @@ app = Flask(__name__)
 # Bot ka WhatsApp number — wa.me link banane ke liye (verify button).
 # Env var se aata hai taaki code mein hardcoded na ho.
 BOT_WHATSAPP_NUMBER = os.environ.get('BOT_WHATSAPP_NUMBER', '919835262809')
+
+# Admin panel password — env var se aata hai.
+# WHY env var (hardcoded nahi)? Code GitHub pe jata hai, password .env mein safe.
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'changeme123')
+
+
+def require_admin(f):
+    """
+    Decorator — Basic Auth check. /admin* routes pe lagao.
+    HOW: browser khud login popup dikhata hai (HTTP standard mechanism).
+    User: 'admin', password: ADMIN_PASSWORD env var.
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        auth = request.authorization
+        if not auth or auth.password != ADMIN_PASSWORD:
+            return Response(
+                'Admin password required.',
+                401,
+                {'WWW-Authenticate': 'Basic realm="NPTEL Admin"'}
+            )
+        return f(*args, **kwargs)
+    return wrapper
 
 # --- FOLDERS -----------------------------------------------------------------
 USERS_DIR = os.path.join(os.path.dirname(__file__), '..', 'users')          # profiles
@@ -199,6 +227,54 @@ def short_redirect(short_id):
 
     increment_shortlink_clicks(short_id)
     return redirect(record['full_url'], code=302)
+
+
+# ============================================================================
+# ADMIN PANEL — protected by Basic Auth (ADMIN_PASSWORD env var)
+# ============================================================================
+
+@app.route('/admin')
+@require_admin
+def admin_dashboard():
+    """Render the admin HTML shell — data loads via /api/admin/users."""
+    return render_template('admin.html')
+
+
+@app.route('/api/admin/users')
+@require_admin
+def admin_users():
+    """
+    Return JSON: all registered users with today's link stats.
+    Sorted: most recently registered first.
+    """
+    users = get_all_users()
+    enriched = []
+    for u in users:
+        stats = get_link_stats_for(u.get('internship_id')) if u.get('internship_id') else None
+        u['links_today'] = stats.get('count') if stats else 0
+        u['last_link_at'] = stats.get('last_at').isoformat() if (stats and stats.get('last_at')) else None
+        enriched.append(u)
+    # Newest registrations first
+    enriched.sort(key=lambda x: x.get('registered_at', ''), reverse=True)
+    return jsonify({"users": enriched, "total": len(enriched)})
+
+
+@app.route('/api/admin/recent')
+@require_admin
+def admin_recent_activity():
+    """Recent shortlinks generated (activity feed)."""
+    recent = get_recent_shortlinks(50)
+    # ObjectId / datetime serialization
+    cleaned = []
+    for r in recent:
+        cleaned.append({
+            'short_id': r.get('short_id'),
+            'internship_id': r.get('internship_id'),
+            'clicks': r.get('clicks', 0),
+            'created_at': r.get('created_at').isoformat() if r.get('created_at') else None,
+            'expires_at': r.get('expires_at').isoformat() if r.get('expires_at') else None,
+        })
+    return jsonify({"shortlinks": cleaned})
 
 
 if __name__ == '__main__':

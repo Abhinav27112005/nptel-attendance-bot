@@ -2,103 +2,482 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- viewport = mobile pe sahi dikhe (user mobile se kholega) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NPTEL Attendance Bot — Register</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #0a0e1a;
+            --bg-elev: #11162a;
+            --card: #161c2e;
+            --border: rgba(148, 163, 184, 0.10);
+            --border-strong: rgba(148, 163, 184, 0.20);
+            --border-focus: rgba(59, 130, 246, 0.50);
+            --text: #f1f5f9;
+            --text-dim: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.18);
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.08);
+            --success-border: rgba(16, 185, 129, 0.25);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.08);
+            --danger-border: rgba(239, 68, 68, 0.25);
+            --wa-green: #25D366;
+            --wa-green-dark: #128C7E;
+            --radius: 14px;
+        }
         * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 20px; background: #f0f2f5; color: #1c1e21; }
-        h1 { color: #128C7E; font-size: 22px; }
-        p.sub { color: #555; font-size: 14px; }
-        .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); margin-top: 16px; }
-        label { display: block; font-weight: bold; margin: 14px 0 4px; font-size: 14px; }
-        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
-        input[type="file"] { padding: 10px; background: #fafafa; }
-        .hint { font-size: 12px; color: #777; margin-top: 3px; }
-        button { background: #25D366; color: #fff; border: none; padding: 14px; border-radius: 6px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; }
-        button:disabled { background: #9e9e9e; }
-        #result { margin-top: 16px; padding: 16px; border-radius: 8px; display: none; font-size: 14px; }
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #eee; }
-        .row b { color: #128C7E; }
+        html, body { margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 15px;
+            line-height: 1.5;
+            background-image:
+                radial-gradient(1000px circle at 20% -10%, rgba(59, 130, 246, 0.10), transparent 50%),
+                radial-gradient(800px circle at 80% 110%, rgba(59, 130, 246, 0.06), transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* Layout */
+        .page {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 32px 20px 60px;
+        }
+
+        /* Brand */
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 6px 18px var(--accent-glow);
+            font-size: 18px;
+        }
+        .brand-title { font-size: 18px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+        .brand-sub { font-size: 12px; color: var(--text-dim); margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+
+        /* Hero */
+        .hero {
+            margin-bottom: 24px;
+        }
+        .hero h2 {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin: 0 0 8px;
+            color: var(--text);
+        }
+        .hero p {
+            font-size: 14px;
+            color: var(--text-dim);
+            margin: 0;
+            line-height: 1.6;
+        }
+        .hero .accent { color: var(--accent); font-weight: 600; }
+
+        /* Steps */
+        .steps {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .step {
+            flex: 1;
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 10px 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .step.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        /* Card */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Form */
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            margin-top: 18px;
+            color: var(--text);
+        }
+        label:first-of-type { margin-top: 0; }
+        label .req { color: var(--accent); margin-left: 2px; }
+
+        input[type="text"],
+        input[type="tel"],
+        input[type="time"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-elev);
+            border: 1px solid var(--border-strong);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+        input[type="text"]:focus,
+        input[type="tel"]:focus,
+        input[type="time"]:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+        input::placeholder { color: var(--text-muted); }
+
+        /* File input — custom drop zone */
+        .file-zone {
+            position: relative;
+            border: 1px dashed var(--border-strong);
+            border-radius: 10px;
+            background: var(--bg-elev);
+            padding: 24px 16px;
+            text-align: center;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+        .file-zone:hover {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.04);
+        }
+        .file-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            padding: 0;
+            border: 0;
+        }
+        .file-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+        .file-text {
+            font-size: 13px;
+            color: var(--text);
+            font-weight: 500;
+        }
+        .file-text small { color: var(--text-dim); font-weight: 400; display: block; margin-top: 2px; }
+        .file-selected {
+            background: var(--success-bg);
+            border-color: var(--success-border);
+        }
+        .file-selected .file-icon { color: var(--success); }
+        .file-selected .file-text { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+        .hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        /* Submit button */
+        button[type="submit"] {
+            width: 100%;
+            margin-top: 24px;
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            color: white;
+            border: 0;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            letter-spacing: 0.01em;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 8px 20px var(--accent-glow);
+        }
+        button[type="submit"]:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px var(--accent-glow);
+        }
+        button[type="submit"]:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Result */
+        #result { margin-top: 20px; display: none; }
+        .result-card {
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+        .result-card.success {
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+        }
+        .result-card.error {
+            background: var(--danger-bg);
+            border: 1px solid var(--danger-border);
+            color: var(--text);
+        }
+        .result-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .result-card.success .result-title { color: var(--success); }
+        .result-card.error .result-title { color: var(--danger); }
+
+        .verify-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: var(--wa-green);
+            color: white;
+            text-decoration: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            margin: 16px 0 12px;
+            transition: all 0.15s;
+            box-shadow: 0 6px 18px rgba(37, 211, 102, 0.25);
+        }
+        .verify-btn:hover {
+            background: var(--wa-green-dark);
+            transform: translateY(-1px);
+        }
+        .verify-hint {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .summary {
+            background: var(--bg-elev);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-top: 12px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            gap: 12px;
+        }
+        .summary-row:last-child { border-bottom: 0; }
+        .summary-row span { color: var(--text-dim); }
+        .summary-row b { color: var(--text); font-weight: 600; text-align: right; word-break: break-word; }
+
+        /* Footer */
+        .foot {
+            text-align: center;
+            margin-top: 28px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Mobile */
+        @media (max-width: 480px) {
+            .page { padding: 24px 16px 40px; }
+            .hero h2 { font-size: 22px; }
+            .card { padding: 20px; }
+        }
     </style>
 </head>
 <body>
-    <h1>📋 NPTEL Attendance Bot</h1>
-    <p class="sub">Apna <b>offer letter PDF</b> upload karo — details apne aap nikal lenge. Ek hi baar karna hai.</p>
+
+<div class="page">
+
+    <div class="brand">
+        <div class="brand-icon">N</div>
+        <div>
+            <p class="brand-title">NPTEL Attendance Bot</p>
+            <p class="brand-sub">Registration Portal</p>
+        </div>
+    </div>
+
+    <div class="hero">
+        <h2>Register in <span class="accent">30 seconds</span></h2>
+        <p>Upload your offer letter PDF. We'll extract every detail automatically — then you're ready to mark attendance via WhatsApp.</p>
+    </div>
+
+    <div class="steps">
+        <div class="step active">1. Upload</div>
+        <div class="step">2. Verify</div>
+        <div class="step">3. WORK:</div>
+    </div>
 
     <div class="card">
         <form id="regForm">
-            <label for="offer_letter">Offer Letter (PDF) *</label>
-            <input type="file" id="offer_letter" name="offer_letter" accept="application/pdf" required>
-            <div class="hint">NPTEL ka official offer letter PDF.</div>
 
-            <label for="mobile">WhatsApp Number *</label>
-            <input type="tel" id="mobile" name="mobile" placeholder="9198XXXXXXXX (country code ke saath)" required>
-            <div class="hint">Isi number se bot identify karega. + ya space mat lagao.</div>
+            <label for="offer_letter">Offer Letter (PDF)<span class="req">*</span></label>
+            <div class="file-zone" id="fileZone">
+                <div class="file-icon" id="fileIcon">📄</div>
+                <div class="file-text" id="fileText">
+                    Tap to choose your PDF
+                    <small>NPTEL offer letter, max 10 MB</small>
+                </div>
+                <input type="file" id="offer_letter" name="offer_letter" accept="application/pdf" required>
+            </div>
+
+            <label for="mobile">WhatsApp Number<span class="req">*</span></label>
+            <input type="tel" id="mobile" name="mobile" placeholder="9198XXXXXXXX" required pattern="\d{10,15}">
+            <div class="hint">Country code + number, no <code>+</code> or spaces. e.g. <b>919876543210</b></div>
 
             <label for="default_login_time">Default Login Time</label>
             <input type="time" id="default_login_time" name="default_login_time" value="09:45">
-            <div class="hint">Agar na batao to ye use hoga. Default: 09:45 AM</div>
+            <div class="hint">Used when you don't specify a custom login time. Default: 09:45 AM</div>
 
-            <button type="submit" id="submitBtn">Upload & Register 🚀</button>
+            <button type="submit" id="submitBtn">
+                <span id="btnText">Register & Activate Bot</span>
+                <span>→</span>
+            </button>
         </form>
 
         <div id="result"></div>
     </div>
 
-    <script>
-        const form = document.getElementById('regForm');
-        const btn = document.getElementById('submitBtn');
-        const resultDiv = document.getElementById('result');
+    <div class="foot">
+        Built for NPTEL Summer Internship 2026 · <a href="/admin" style="color:var(--text-dim);text-decoration:none;border-bottom:1px dashed var(--border-strong);">Admin</a>
+    </div>
+</div>
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();           // page reload mat karo
-            btn.disabled = true;
-            btn.textContent = 'Processing... ⏳';
-            resultDiv.style.display = 'none';
+<script>
+    const form = document.getElementById('regForm');
+    const btn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const resultDiv = document.getElementById('result');
+    const fileInput = document.getElementById('offer_letter');
+    const fileZone = document.getElementById('fileZone');
+    const fileText = document.getElementById('fileText');
+    const fileIcon = document.getElementById('fileIcon');
 
-            try {
-                // FormData = file + text fields ek saath bhejne ka tareeka
-                const formData = new FormData(form);
-                const res = await fetch('/register', { method: 'POST', body: formData });
-                const data = await res.json();
+    // File picker — show selected name
+    fileInput.addEventListener('change', () => {
+        const f = fileInput.files[0];
+        if (f) {
+            fileZone.classList.add('file-selected');
+            fileIcon.textContent = '✓';
+            fileText.innerHTML = `${escapeHtml(f.name)}<small>${(f.size/1024).toFixed(1)} KB · ready to upload</small>`;
+        } else {
+            fileZone.classList.remove('file-selected');
+            fileIcon.textContent = '📄';
+            fileText.innerHTML = 'Tap to choose your PDF<small>NPTEL offer letter, max 10 MB</small>';
+        }
+    });
 
-                resultDiv.style.display = 'block';
-                if (data.success) {
-                    const p = data.profile;
-                    resultDiv.className = 'success';
-                    // Verify-on-WhatsApp button: user click karega → unka WA khulega
-                    // bot ke chat ke saath "LINK <id>" pre-filled → bas Send dabana hai.
-                    const verifyBtn = data.verify_url
-                        ? `<a href="${data.verify_url}" target="_blank" style="display:block;text-align:center;background:#25D366;color:#fff;padding:14px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0 8px;">📱 Verify on WhatsApp →</a>
-                           <div class="hint" style="text-align:center;color:#555;margin-bottom:12px;">Button dabao, WhatsApp khulega, bas <b>Send</b> dabana — ho gaya!</div>`
-                        : '';
-                    resultDiv.innerHTML =
-                        `✅ <b>${data.message}</b>` + verifyBtn +
-                        `<div class="row"><span>ID</span><b>${p.internship_id}</b></div>` +
-                        `<div class="row"><span>Name</span><b>${p.name}</b></div>` +
-                        `<div class="row"><span>Institute</span><b>${p.institute}</b></div>` +
-                        `<div class="row"><span>Professor</span><b>${p.professor}</b></div>` +
-                        `<div class="row"><span>Mode</span><b>${p.mode}</b></div>` +
-                        `<div class="row"><span>Duration</span><b>${p.duration}</b></div>` +
-                        `<div class="row"><span>Start</span><b>${p.start_date}</b></div>` +
-                        `<div class="row"><span>End</span><b>${p.end_date}</b></div>` +
-                        `<div class="row"><span>Mobile</span><b>${p.mobile}</b></div>`;
-                } else {
-                    resultDiv.className = 'error';
-                    resultDiv.innerHTML = `❌ ${data.error}`;
-                }
-            } catch (err) {
-                resultDiv.style.display = 'block';
-                resultDiv.className = 'error';
-                resultDiv.innerHTML = `❌ Network error: ${err.message}`;
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Upload & Register 🚀';
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        btn.disabled = true;
+        btnText.textContent = 'Extracting from PDF…';
+        resultDiv.style.display = 'none';
+
+        try {
+            const formData = new FormData(form);
+            const res = await fetch('/register', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            resultDiv.style.display = 'block';
+
+            if (data.success) {
+                const p = data.profile;
+                const verifyBtn = data.verify_url
+                    ? `<a class="verify-btn" href="${data.verify_url}" target="_blank">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.595 5.392l.142.225-1.013 3.695 3.808-1.011.157.105z"/></svg>
+                          Verify on WhatsApp
+                       </a>
+                       <div class="verify-hint">Opens WhatsApp with the LINK command pre-filled — just hit <b>Send</b>.</div>`
+                    : '';
+
+                resultDiv.innerHTML = `
+                    <div class="result-card success">
+                        <div class="result-title">✓ ${escapeHtml(data.message)}</div>
+                        ${verifyBtn}
+                        <div class="summary">
+                            <div class="summary-row"><span>Internship ID</span><b>${escapeHtml(p.internship_id)}</b></div>
+                            <div class="summary-row"><span>Name</span><b>${escapeHtml(p.name)}</b></div>
+                            <div class="summary-row"><span>Institute</span><b>${escapeHtml(p.institute)}</b></div>
+                            <div class="summary-row"><span>Professor</span><b>${escapeHtml(p.professor)}</b></div>
+                            <div class="summary-row"><span>Mode</span><b>${escapeHtml(p.mode)}</b></div>
+                            <div class="summary-row"><span>Duration</span><b>${escapeHtml(p.duration)}</b></div>
+                            <div class="summary-row"><span>Start Date</span><b>${escapeHtml(p.start_date)}</b></div>
+                            <div class="summary-row"><span>End Date</span><b>${escapeHtml(p.end_date)}</b></div>
+                            <div class="summary-row"><span>Mobile</span><b>${escapeHtml(p.mobile)}</b></div>
+                        </div>
+                    </div>`;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="result-card error">
+                        <div class="result-title">✕ Couldn't register</div>
+                        <div>${escapeHtml(data.error)}</div>
+                    </div>`;
             }
-        });
-    </script>
+        } catch (err) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-card error">
+                    <div class="result-title">✕ Network error</div>
+                    <div>${escapeHtml(err.message)}</div>
+                </div>`;
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = 'Register & Activate Bot';
+        }
+    });
+
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+</script>
 </body>
 </html>
