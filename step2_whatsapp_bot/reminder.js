@@ -1,152 +1,102 @@
 // =============================================================================
 // FILE: reminder.js
-// PURPOSE: Shaam 5 baje ke baad har 30 minute mein user ko reminder bhejta hai
-//          "Attendance bharo! Aaj kya kiya?" — JAB TAK user aaj bhar na de.
+// PURPOSE: After 5 PM IST, every 30 minutes, ping each registered user who
+//          hasn't submitted today's attendance yet.
 //
-// LEARNING CONCEPT: Scheduler / Cron Job
-//   Normal code ek baar chalta hai aur khatam.
-//   Lekin reminder ko BAAR-BAAR chalna hai (har 30 min).
-//   Iske liye "cron" use karte hain — ek aisa system jo decide karta hai
-//   "is time pe yeh code chalao".
+// LEARNING CONCEPT: Cron scheduler
+//   `cron.schedule(pattern, callback)` keeps running the callback on a schedule.
+//   Pattern '*/30 17-23 * * *' means:
+//     minute=*/30 (every 30 min), hour=17-23 (5 PM – 11 PM), day/month/dow=*
 //
-//   Example samjho: Ghar ka alarm clock.
-//   Tum set karte ho "subah 7 baje bajna". Clock khud check karta rehta hai,
-//   jab 7 baje hote hain — alarm bajta hai. Cron bilkul wahi hai code ke liye.
-//
-// CRON SYNTAX:
-//   '*/30 17-23 * * *'  ka matlab:
-//    │    │    │ │ │
-//    │    │    │ │ └── din of week (* = koi bhi din)
-//    │    │    │ └──── mahina (* = koi bhi mahina)
-//    │    │    └────── tareekh (* = koi bhi tareekh)
-//    │    └─────────── ghanta (17-23 = shaam 5 baje se raat 11 baje tak)
-//    └──────────────── minute (*/30 = har 30 minute mein)
-//
-//   To pura matlab: "shaam 5 se raat 11 ke beech, har 30 minute mein chalao"
+// TIMEZONE NOTE — IMPORTANT
+//   cron uses the SERVER's local timezone by default.
+//   If hosted on Render/etc. that's UTC → 17:00 UTC = 22:30 IST (very late!).
+//   We pass timezone: 'Asia/Kolkata' so reminders fire at the right IST hour
+//   no matter where the bot is hosted.
 // =============================================================================
 
-// node-cron library — yeh scheduling ka kaam karti hai.
-// Install karna: npm install node-cron
 const cron = require('node-cron');
-
-// fs = file system, taaki hum tracker file padh/likh sakein.
 const fs = require('fs');
 const path = require('path');
 
-// Tracker file ka path — yeh yaad rakhega kisne kab attendance bhari.
-// WHY file (memory nahi)? Agar bot restart ho jaye, to memory saaf ho jaati hai.
-// File disk pe rehti hai — restart ke baad bhi data bacha rehta hai.
+// State file — remembers who already submitted today.
+// Survives bot restart (lives on disk, not RAM).
 const STATE_FILE = path.join(__dirname, '..', 'logs', 'attendance_state.json');
 
-// -----------------------------------------------------------------------------
-// HELPER 1: Aaj ki date string nikalo (YYYY-MM-DD format mein)
-// -----------------------------------------------------------------------------
-// WHY string? Date object compare karna mushkil hai. String "2026-06-21"
-// compare karna aasaan — bas equal hai ya nahi check karo.
+// Today's date as "YYYY-MM-DD" string (easy to compare).
 function getTodayString() {
     const now = new Date();
-    const year = now.getFullYear();
-    // getMonth() 0 se start hota hai (January = 0), isliye +1
-    // padStart(2, '0') => 6 ko "06" bana deta hai (2 digit ke liye)
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;  // "2026-06-21"
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
-// -----------------------------------------------------------------------------
-// HELPER 2: Tracker file padho
-// -----------------------------------------------------------------------------
-// Returns: ek object jaise { "919835262809@c.us": "2026-06-21" }
-// Matlab "is user ne 21 June ko attendance bhari thi"
 function loadState() {
-    try {
-        // File padhne ki koshish karo
-        const data = fs.readFileSync(STATE_FILE, 'utf8');
-        return JSON.parse(data);  // JSON text ko object banao
-    } catch (e) {
-        // Agar file exist hi nahi karti (pehli baar), to khaali object do
-        return {};
-    }
+    try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); }
+    catch { return {}; }
 }
 
-// -----------------------------------------------------------------------------
-// HELPER 3: Tracker file mein likho
-// -----------------------------------------------------------------------------
 function saveState(state) {
-    // object ko JSON text banao (null, 2 = pretty formatting ke liye)
+    // Ensure logs dir exists (first run on a fresh host)
+    fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 }
 
-// -----------------------------------------------------------------------------
-// PUBLIC FUNCTION 1: Mark karo ki user ne aaj attendance bhar di
-// -----------------------------------------------------------------------------
-// Yeh bot.js call karega jab form successfully submit ho jaye.
-// Iske baad reminder band ho jayega us user ke liye (aaj ke din).
-function markSubmittedToday(userId) {
+/**
+ * Mark a user as having submitted today.
+ * KEY = internship_id (stable across @c.us and @lid — both can map to the
+ * same user). Earlier we used the WhatsApp ID directly, which broke for
+ * @lid users (state saved under @lid, reminder checked @c.us → no match
+ * → user got spammed reminders even after submitting).
+ */
+function markSubmittedToday(internshipId) {
+    if (!internshipId) return;
     const state = loadState();
-    state[userId] = getTodayString();  // "is user ne aaj bhar di"
+    state[internshipId] = getTodayString();
     saveState(state);
-    console.log(`[Reminder] ${userId} ne aaj attendance bhar di — reminder band.`);
+    console.log(`[Reminder] ${internshipId} submitted today — reminders OFF.`);
 }
 
-// -----------------------------------------------------------------------------
-// PUBLIC FUNCTION 2: Check karo ki user ne aaj bhari ya nahi
-// -----------------------------------------------------------------------------
-function hasSubmittedToday(userId) {
-    const state = loadState();
-    // Agar is user ki saved date == aaj ki date, to haan bhar di
-    return state[userId] === getTodayString();
+function hasSubmittedToday(internshipId) {
+    if (!internshipId) return false;
+    return loadState()[internshipId] === getTodayString();
 }
 
-// -----------------------------------------------------------------------------
-// MAIN FUNCTION: Reminder scheduler shuru karo
-// -----------------------------------------------------------------------------
-// Parameters:
-//   client     → WhatsApp client (message bhejne ke liye)
-//   getTargets → ek function jo batata hai "kis-kis ko reminder bhejna hai"
-//                Phase 1 mein: sirf tum. Phase 2 mein: saare registered users.
+/**
+ * Start the reminder scheduler.
+ * @param {object} client       WhatsApp client (sendMessage)
+ * @param {function} getTargets async () => [{ id, name, internshipId }, ...]
+ */
 function startReminders(client, getTargets) {
-    console.log('[Reminder] Scheduler shuru — shaam 5 baje se har 30 min reminder.');
+    console.log('[Reminder] Scheduler started — pings every 30 min from 5 PM to 11 PM IST.');
 
-    // cron.schedule(pattern, callback)
-    // Pattern: '*/30 17-23 * * *' = shaam 5 se raat 11, har 30 min
-    //
-    // TEST karne ke liye: '*/1 * * * *' use karo (har 1 minute) — turant dikhega.
     cron.schedule('*/30 17-23 * * *', async () => {
-        console.log(`[Reminder] ${new Date().toLocaleTimeString()} — check kar raha hoon...`);
+        console.log(`[Reminder] ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} — checking users...`);
 
-        // Kis-kis ko bhejna hai? getTargets() se list lo.
-        // await — ab ye async hai (db se users aate hain).
-        const targets = await getTargets();  // [{ id: "...@c.us", name: "Abhinav" }, ...]
+        const targets = await getTargets();
 
         for (const user of targets) {
-            // Agar user ne AAJ pehle hi bhar di hai — to skip karo, pareshan mat karo.
-            if (hasSubmittedToday(user.id)) {
-                console.log(`[Reminder] ${user.name} ne bhar di — skip.`);
-                continue;  // agle user pe jao
+            if (hasSubmittedToday(user.internshipId)) {
+                console.log(`[Reminder] ${user.name} already submitted — skip.`);
+                continue;
             }
 
-            // Warna reminder bhejo
             const reminderText =
                 `⏰ *Attendance Reminder*\n\n` +
-                `Hi ${user.name}! Aaj ki attendance abhi tak nahi bhari. 📝\n\n` +
-                `Bas yahan likho aaj kya kaam kiya, main form bhar dunga.\n` +
-                `Example: _"Aaj maine ML model train kiya"_`;
+                `Hi ${user.name}! You haven't marked today's attendance yet. 📝\n\n` +
+                `Just send your work description like:\n` +
+                `*WORK: Worked on data preprocessing today*\n\n` +
+                `I'll prepare your form link instantly.`;
 
             try {
-                // client.sendMessage(kisko, kya) — proactive message bhejta hai
                 await client.sendMessage(user.id, reminderText);
-                console.log(`[Reminder] ${user.name} ko reminder bhej diya.`);
+                console.log(`[Reminder] Sent to ${user.name}.`);
             } catch (err) {
-                console.error(`[Reminder] ${user.name} ko bhejne mein error:`, err.message);
+                console.error(`[Reminder] Failed for ${user.name}:`, err.message);
             }
         }
+    }, {
+        // FIX: lock to IST so it fires at the right hour on any host (Render UTC, etc.)
+        timezone: 'Asia/Kolkata'
     });
 }
 
-// Yeh functions baahar (bot.js) use kar sake, isliye export karte hain.
-module.exports = {
-    startReminders,
-    markSubmittedToday,
-    hasSubmittedToday
-};
+module.exports = { startReminders, markSubmittedToday, hasSubmittedToday };

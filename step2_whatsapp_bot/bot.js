@@ -198,8 +198,8 @@ function timeWarnings(loginTime, logoutTime) {
     const warns = [];
     const lh = parseInt(loginTime.split(':')[0], 10);
     const oh = parseInt(logoutTime.split(':')[0], 10);
-    if (lh >= 12) warns.push(`⚠️ Login PM dikh raha hai (${to12Hour(loginTime)}) — sahi hai kya?`);
-    if (oh < 8)   warns.push(`⚠️ Logout bahut subah dikh raha hai (${to12Hour(logoutTime)}) — sahi hai kya?`);
+    if (lh >= 12) warns.push(`⚠️ Login time looks like PM (${to12Hour(loginTime)}) — is that right?`);
+    if (oh < 8)   warns.push(`⚠️ Logout time is very early (${to12Hour(logoutTime)}) — is that right?`);
     return warns;
 }
 
@@ -226,9 +226,9 @@ function formatSummaryMessage(profile, pendingData) {
 🕕 Logout Time: ${logoutDisplay}
 📝 Work Done: ${pendingData.natureOfWork}${warnBlock}
 ─────────────────────
-✅ *YES* bhejo → bhara-bharaya form link milega
-🕐 *LOGIN HH:MM* → login time badlo (jaise LOGIN 10:30)
-❌ *CANCEL* → radd karo`;
+✅ Send *YES* → get your pre-filled form link
+🕐 Send *LOGIN HH:MM* → change login time (e.g. LOGIN 10:30)
+❌ Send *CANCEL* → discard`;
 }
 
 /**
@@ -393,15 +393,19 @@ client.on('ready', async () => {
     await db.connect();
     console.log(`[DB] Mode: ${db.usingCloud() ? 'MongoDB (cloud)' : 'local files'}`);
 
-    // Reminder scheduler shuru karo.
-    // getTargets() saare registered users ki list deta hai (MULTI-USER).
-    // Ab ASYNC hai — db se users aate hain.
+    // Reminder scheduler — async getTargets fetches all registered users from DB.
+    // Prefer whatsapp_id (the actual @lid/@c.us the user messages from) so the
+    // reminder reaches them even on @lid-only accounts. Fall back to mobile@c.us.
     startReminders(client, async () => {
         const users = await db.getAllUsers();
-        return users.map(p => ({
-            id: `${p.mobile.replace(/[+\s]/g, '')}@c.us`,  // "919835262809@c.us"
-            name: p.name
-        }));
+        return users
+            .filter(p => p && p.internship_id)
+            .map(p => ({
+                id: p.whatsapp_id || `${(p.mobile || '').replace(/[+\s]/g, '')}@c.us`,
+                name: p.name || p.internship_id,
+                internshipId: p.internship_id
+            }))
+            .filter(t => t.id);  // drop ones with no usable id
     });
 });
 
@@ -529,60 +533,60 @@ async function handleMessage(msg) {
         const { profile: existing } = await findUserByMessage(msg);
         if (existing) {
             await botReply(msg,
-                `✅ *Tum already registered ho!*\n\n` +
+                `✅ *You're already registered!*\n\n` +
                 `👤 Name: ${existing.name}\n` +
                 `🆔 ID: ${existing.internship_id}\n\n` +
-                `Attendance ke liye bas bhejo: *WORK: aaj jo kaam kiya*\n\n` +
-                `_Details badalni hain to: ${BOT_CONFIG.REGISTER_URL}_`
+                `To mark attendance, just send: *WORK: <what you did today>*\n\n` +
+                `_To update details: ${BOT_CONFIG.REGISTER_URL}_`
             );
         } else {
             await botReply(msg,
                 `📝 *NPTEL Attendance Bot — Registration*\n\n` +
-                `Niche link kholo aur apna *offer letter PDF* upload karo — details apne aap nikal lenge.\n\n` +
+                `*Step 1:* Open the link below and upload your *offer letter PDF*. All details will be extracted automatically.\n\n` +
                 `👉 ${BOT_CONFIG.REGISTER_URL}\n\n` +
-                `*Website pe register karne ke baad* WhatsApp pe bhejo:\n` +
-                `*LINK <internship_id>*  (jaise: LINK SUM260111)\n\n` +
-                `Ye ek baar ka step hai — phir attendance ke liye bas *WORK: ...* bhejo.`
+                `*Step 2:* After registering on the website, tap the green *"Verify on WhatsApp"* button that appears. It will open WhatsApp with the LINK command pre-filled — just hit Send.\n\n` +
+                `*Step 3:* Now you can mark attendance by sending: *WORK: <your work today>*`
             );
         }
         return;
     }
 
     // ---------------------------------------------------------
-    // LINK <internship_id> — WhatsApp account ko registered profile se jodo
-    //   Ye step zaroori hai kyunki WhatsApp Web @lid users ka mobile reliably
-    //   nahi resolve hota — toh user khud apni ID bata ke link karte hain.
+    // LINK <internship_id> — connect WhatsApp account to registered profile.
+    //   Needed because WhatsApp Web doesn't reliably resolve @lid → phone,
+    //   so the user explicitly tells the bot their ID. The "Verify on
+    //   WhatsApp" button on the website pre-fills this command — most
+    //   users never type it manually.
     // ---------------------------------------------------------
     if (linkMatch) {
         const internshipId = linkMatch[1].toUpperCase();
 
-        // Pehle dekh — pehle se linked hai kya?
+        // Already linked?
         const { profile: existing } = await findUserByMessage(msg);
         if (existing) {
             await botReply(msg,
-                `✅ Tum pehle se linked ho!\n👤 ${existing.name} (${existing.internship_id})`
+                `✅ Already linked!\n👤 ${existing.name} (${existing.internship_id})`
             );
             return;
         }
 
-        // Profile ID se dhoondho aur is WhatsApp ID ko link karo
+        // Find profile by ID, then save this WhatsApp ID into it.
         const linked = await db.linkWhatsappId(internshipId, msg.from);
         if (!linked) {
             await botReply(msg,
-                `❌ ID *${internshipId}* nahi mili.\n\n` +
-                `Pehle website pe register karo: ${BOT_CONFIG.REGISTER_URL}\n` +
-                `Phir wapas aake *LINK ${internshipId}* bhejo.`
+                `❌ Internship ID *${internshipId}* not found.\n\n` +
+                `Please register first: ${BOT_CONFIG.REGISTER_URL}\n` +
+                `Then come back and send *LINK ${internshipId}* again.`
             );
             return;
         }
 
-        // Verify (saved profile lao)
         const { profile: verifyProfile } = await findUserByMessage(msg);
         await botReply(msg,
             `✅ *Account linked!*\n\n` +
             `👤 ${verifyProfile?.name || '(name not set)'}\n` +
             `🆔 ${internshipId}\n\n` +
-            `Ab attendance ke liye bhejo: *WORK: aaj jo kaam kiya*`
+            `Now you can mark attendance by sending: *WORK: <what you did today>*`
         );
         return;
     }
@@ -610,24 +614,24 @@ async function handleMessage(msg) {
             await botReply(msg,
                 `*NPTEL Attendance Bot — Commands* 🤖\n` +
                 `━━━━━━━━━━━━━━━━━━━━\n\n` +
-                `📝 *WORK:* <kaam ka description>\n` +
-                `   _Attendance shuru karo._\n` +
-                `   Example: \`WORK: Aaj data scraping kiya\`\n\n` +
-                `✅ *YES* — confirm karke link lo\n` +
-                `❌ *CANCEL* — radd karo\n` +
-                `🕐 *LOGIN HH:MM* — login time badlo (jaise \`LOGIN 10:30\`)\n\n` +
+                `📝 *WORK:* <what you did today>\n` +
+                `   _Start attendance flow._\n` +
+                `   Example: \`WORK: Worked on data scraping today\`\n\n` +
+                `✅ *YES* — confirm and get your form link\n` +
+                `❌ *CANCEL* — discard\n` +
+                `🕐 *LOGIN HH:MM* — change login time (e.g. \`LOGIN 10:30\`)\n\n` +
                 `🔵 *REGISTER* — registration link\n` +
-                `🟢 *!status* — apna status dekho (kitne link aaj banaye)\n` +
-                `🟡 *!help* — ye message`
+                `🟢 *!status* — your status (how many links today)\n` +
+                `🟡 *!help* — this message`
             );
         } else {
-            // !status — registered status + aaj ka link count + last link time
-            let countLine = '🔢 Aaj ke links: *0*';
+            // !status — registered status + today's link count + last link time
+            let countLine = '🔢 Links today: *0*';
             let lastLine = '';
             try {
                 const s = await db.getLinkStats(profile.internship_id);
                 if (s) {
-                    countLine = `🔢 Aaj ke links: *${s.count}*`;
+                    countLine = `🔢 Links today: *${s.count}*`;
                     if (s.last_at) {
                         const lastAt = new Date(s.last_at);
                         const hh = String(lastAt.getHours()).padStart(2, '0');
@@ -637,18 +641,18 @@ async function handleMessage(msg) {
                 }
             } catch (e) { /* ignore stats fail */ }
 
-            const generated = countLine.includes('*0*')
-                ? '_Aaj abhi tak attendance link nahi banaya — `WORK: ...` bhejo._'
-                : `_Link ban chuka hai, woh khol ke submit kar do._`;
+            const hint = countLine.includes('*0*')
+                ? '_No attendance link generated today yet — send `WORK: ...` to start._'
+                : `_Link already sent — open it and submit to mark attendance._`;
 
             await botReply(msg,
-                `📊 *Tumhara Status*\n` +
+                `📊 *Your Status*\n` +
                 `━━━━━━━━━━━━━━━━━━━━\n` +
                 `🟢 Status: *Registered*\n` +
                 `👤 Name: ${profile.name}\n` +
                 `🆔 ID: ${profile.internship_id}\n\n` +
                 `${countLine}${lastLine}\n\n` +
-                `${generated}`
+                `${hint}`
             );
         }
         return;
@@ -688,14 +692,14 @@ async function handleMessage(msg) {
     if (isCancel) {
         session.state = 'IDLE';
         session.pendingData = null;
-        await botReply(msg, '❌ Cancel ho gaya. Naya *WORK: ...* bhejo retry karne ke liye.');
+        await botReply(msg, '❌ Cancelled. Send a new *WORK: ...* to try again.');
         return;
     }
 
     if (loginMatch) {
         const timePart = loginMatch[1];
         session.pendingData.loginTime = timePart;
-        await botReply(msg, `✅ Login time ab *${timePart}*. *YES* bhejo confirm karne ke liye ya *CANCEL*.`);
+        await botReply(msg, `✅ Login time updated to *${timePart}*. Send *YES* to confirm or *CANCEL* to discard.`);
         return;
     }
 
@@ -728,20 +732,21 @@ async function handleMessage(msg) {
         const loginDisp  = to12Hour(session.pendingData.loginTime);
         const logoutDisp = to12Hour(session.pendingData.logoutTime);
         const countLine = stats.todayCount > 1
-            ? `\n_(Aaj ka ${stats.todayCount}vaan link)_`
+            ? `\n_(Link #${stats.todayCount} for today)_`
             : '';
 
         await botReply(msg,
-            `✅ *Tumhara bhara-bharaya form link tayyar!*${countLine}\n\n` +
+            `✅ *Your pre-filled form link is ready!*${countLine}\n\n` +
             `👉 ${displayUrl}\n\n` +
-            `📌 *Submit dabane se pehle TIME check karo:*\n` +
+            `📌 *Before submitting, check the TIME fields:*\n` +
             `🕐 Login: *${session.pendingData.loginTime}* (${loginDisp})\n` +
             `🕕 Logout: *${session.pendingData.logoutTime}* (${logoutDisp})\n` +
-            `_(Google Forms time auto-fill nahi karta — khaali ho to khud bhar lena.)_\n\n` +
-            `⚠️ Submit dabana mat bhoolna — tabhi attendance lagegi!`
+            `_(Google Forms doesn't auto-fill time fields — if empty, just type these values manually.)_\n\n` +
+            `⚠️ Don't forget to tap *Submit* — that's what marks your attendance!`
         );
 
-        markSubmittedToday(senderId);
+        // Mark by internship_id (stable across @c.us and @lid identities)
+        markSubmittedToday(profile.internship_id);
         session.state = 'IDLE';
         session.pendingData = null;
         return;
