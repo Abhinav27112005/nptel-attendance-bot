@@ -189,14 +189,39 @@ function getSession(userId) {
 }
 
 /**
+ * "09:45" (24-hour) → "09:45 AM" (12-hour with AM/PM, clarity ke liye).
+ */
+function to12Hour(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+    return `${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+/**
+ * Sanity check — galat lagne wala time ho to warning return karo.
+ * - Login generally AM hota hai (subah ya dopahar tak)
+ * - Logout generally PM hota hai (shaam ko)
+ * - Late-night testing ya odd timing pe user ko alert karta hai
+ */
+function timeWarnings(loginTime, logoutTime) {
+    const warns = [];
+    const lh = parseInt(loginTime.split(':')[0], 10);
+    const oh = parseInt(logoutTime.split(':')[0], 10);
+    if (lh >= 12) warns.push(`⚠️ Login PM dikh raha hai (${to12Hour(loginTime)}) — sahi hai kya?`);
+    if (oh < 8)   warns.push(`⚠️ Logout bahut subah dikh raha hai (${to12Hour(logoutTime)}) — sahi hai kya?`);
+    return warns;
+}
+
+/**
  * Formats a summary message showing what will be submitted.
- * Shown to user before they confirm.
- *
- * @param {object} profile - user profile
- * @param {object} pendingData - the data to be submitted
- * @returns {string} formatted WhatsApp message
  */
 function formatSummaryMessage(profile, pendingData) {
+    const loginDisplay  = `${pendingData.loginTime}  (${to12Hour(pendingData.loginTime)})`;
+    const logoutDisplay = `${pendingData.logoutTime}  (${to12Hour(pendingData.logoutTime)})`;
+    const warns = timeWarnings(pendingData.loginTime, pendingData.logoutTime);
+    const warnBlock = warns.length ? '\n' + warns.join('\n') + '\n' : '';
+
     return `📋 *Attendance Summary*
 ─────────────────────
 👤 Name: ${profile.name}
@@ -207,9 +232,9 @@ function formatSummaryMessage(profile, pendingData) {
 📅 Duration: ${profile.duration}
 📆 Start Date: ${profile.start_date}
 📆 End Date: ${profile.end_date}
-🕐 Login Time: ${pendingData.loginTime}
-🕕 Logout Time: ${pendingData.logoutTime}
-📝 Work Done: ${pendingData.natureOfWork}
+🕐 Login Time: ${loginDisplay}
+🕕 Logout Time: ${logoutDisplay}
+📝 Work Done: ${pendingData.natureOfWork}${warnBlock}
 ─────────────────────
 ✅ *YES* bhejo → bhara-bharaya form link milega
 🕐 *LOGIN HH:MM* → login time badlo (jaise LOGIN 10:30)
@@ -461,18 +486,30 @@ async function handleMessage(msg) {
 
     // ---------------------------------------------------------
     // REGISTER: naya user "REGISTER" bheje → registration site ka link do.
-    //   Ye registered/unregistered DONO ke liye chalta hai (naya user onboard ho sake).
+    //   Agar PEHLE SE registered hai → bata do, dobara karne ki zaroorat nahi.
     //   trim + toUpperCase taaki "register", "Register", " REGISTER " sab chale.
     // ---------------------------------------------------------
     if (messageBody.trim().toUpperCase() === 'REGISTER') {
-        await botReply(msg,
-            `📝 *NPTEL Attendance Bot — Registration*\n\n` +
-            `Niche link kholo aur apna *offer letter PDF* upload karo — ` +
-            `details apne aap nikal lenge.\n\n` +
-            `👉 ${BOT_CONFIG.REGISTER_URL}\n\n` +
-            `Register hone ke baad, attendance ke liye bas bhejo:\n` +
-            `*WORK: aaj jo kaam kiya*`
-        );
+        const { profile: existing } = await findUserByMessage(msg);
+        if (existing) {
+            // Already registered — naam ke saath confirm karo
+            await botReply(msg,
+                `✅ *Tum already registered ho!*\n\n` +
+                `👤 Name: ${existing.name}\n` +
+                `🆔 ID: ${existing.internship_id}\n\n` +
+                `Attendance ke liye bas bhejo: *WORK: aaj jo kaam kiya*\n\n` +
+                `_Details badalni hain to update ke liye site: ${BOT_CONFIG.REGISTER_URL}_`
+            );
+        } else {
+            await botReply(msg,
+                `📝 *NPTEL Attendance Bot — Registration*\n\n` +
+                `Niche link kholo aur apna *offer letter PDF* upload karo — ` +
+                `details apne aap nikal lenge.\n\n` +
+                `👉 ${BOT_CONFIG.REGISTER_URL}\n\n` +
+                `Register hone ke baad, attendance ke liye bas bhejo:\n` +
+                `*WORK: aaj jo kaam kiya*`
+            );
+        }
         return;
     }
 
@@ -597,12 +634,18 @@ async function handleMessage(msg) {
                 session.pendingData.logoutTime
             );
 
+            // 12-hour format banao backup ke liye (agar form mein time auto-fill na ho)
+            const loginDisp = to12Hour(session.pendingData.loginTime);
+            const logoutDisp = to12Hour(session.pendingData.logoutTime);
+
             await botReply(msg,
                 `✅ *Tumhara bhara-bharaya form link tayyar hai!*\n\n` +
-                `👇 Is link ko apne phone pe tap karo. Form tumhare Chrome mein, tumhare Gmail se khulega — ` +
-                `sab fields PEHLE SE bhare honge.\n\n` +
-                `📌 Sirf neeche scroll karke *Submit* dabao.\n\n` +
+                `👇 Is link ko apne phone pe tap karo. Form tumhare Chrome mein, tumhare Gmail se khulega.\n\n` +
                 `${url}\n\n` +
+                `📌 *Submit dabane se pehle TIME check karo:*\n` +
+                `🕐 Login: *${session.pendingData.loginTime}* (${loginDisp})\n` +
+                `🕕 Logout: *${session.pendingData.logoutTime}* (${logoutDisp})\n` +
+                `_(Google Forms kabhi time auto-fill nahi karta — agar khaali ho to ye values khud bhar lena, 5 sec kaam hai.)_\n\n` +
                 `⚠️ Submit dabana mat bhoolna — tabhi attendance lagegi!`
             );
 

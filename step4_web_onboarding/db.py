@@ -78,6 +78,40 @@ def save_user(profile: dict, pdf_path: str = None):
             json.dump(profile, f, indent=2, ensure_ascii=False)
 
 
+def find_user(internship_id: str = None, mobile: str = None) -> dict | None:
+    """
+    Dhoondho ki internship_id ya mobile pehle se registered hai ya nahi.
+    Dono mein se koi bhi match kare to woh user return karta hai.
+    Registration ke "already registered" check ke liye.
+    """
+    mobile = (mobile or '').replace('+', '').replace(' ', '')
+
+    if using_cloud():
+        db = _get_db()
+        # $or — internship_id YA mobile match kare to mil jaaye
+        query = {'$or': []}
+        if internship_id:
+            query['$or'].append({'internship_id': internship_id})
+        if mobile:
+            query['$or'].append({'mobile': mobile})
+        if not query['$or']:
+            return None
+        return db.users.find_one(query, {'_id': 0})
+    else:
+        if not os.path.isdir(USERS_DIR):
+            return None
+        for fn in os.listdir(USERS_DIR):
+            if not fn.endswith('.json'):
+                continue
+            with open(os.path.join(USERS_DIR, fn), encoding='utf-8') as f:
+                p = json.load(f)
+            if internship_id and p.get('internship_id') == internship_id:
+                return p
+            if mobile and p.get('mobile', '').replace('+', '').replace(' ', '') == mobile:
+                return p
+        return None
+
+
 def get_all_users() -> list:
     """Saare registered users (admin panel ke liye)."""
     if using_cloud():

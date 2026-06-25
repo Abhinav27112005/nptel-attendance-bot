@@ -65,12 +65,19 @@ function splitDate(dateStr) {
 // HELPER: "09:45" ko {hour, minute} mein todo
 // -----------------------------------------------------------------------------
 function splitTime(timeStr) {
-    const [hour, minute] = timeStr.split(':');  // "09:45" → ["09","45"]
-    // String mein wapas (padded 2-digit) — Google Forms time pre-fill ko
-    // "09" chahiye, "9" nahi. parseInt karne se "09" → 9 ho jata tha.
+    // "09:45" → hour=9, minute=45 (integer — Google Forms time pre-fill
+    // requires plain numbers without leading zeros; padded "09" also fails).
+    //
+    // KNOWN LIMITATION: Google Forms time pre-fill via URL is UNRELIABLE —
+    // works in some forms, fails in others (Google has never officially
+    // documented support). Date pre-fill works reliably; time often doesn't.
+    // Hum apni taraf se sahi format bhejte hain — agar form accept kare to
+    // bhar jayega, warna user khud type karega (WhatsApp summary mein time
+    // 12-hour format mein clearly dikhata hai backup ke liye).
+    const [hour, minute] = timeStr.split(':');
     return {
-        hour: String(parseInt(hour, 10)).padStart(2, '0'),     // "09"
-        minute: String(parseInt(minute, 10)).padStart(2, '0')  // "45"
+        hour: parseInt(hour, 10),     // 9 (not "09" or "9")
+        minute: parseInt(minute, 10)  // 45
     };
 }
 

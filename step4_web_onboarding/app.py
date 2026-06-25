@@ -31,7 +31,7 @@ from werkzeug.utils import secure_filename  # filename ko safe banata hai
 from extract_offer_letter import extract_offer_letter
 
 # Data layer — profile MongoDB ya local files mein save karta hai
-from db import save_user, using_cloud
+from db import save_user, using_cloud, find_user
 
 # Cloudinary — offer letter PDF cloud pe store karne ke liye
 from cloud_storage import upload_pdf
@@ -101,6 +101,25 @@ def register():
     if not profile.get('internship_id'):
         os.remove(temp_path)
         return jsonify({"error": "PDF se Internship ID nahi mili. Sahi NPTEL offer letter upload karo."}), 400
+
+    # --- 5b. Duplicate check — pehle se registered ho to roko ---
+    existing = find_user(internship_id=profile['internship_id'], mobile=mobile)
+    if existing:
+        os.remove(temp_path)
+        # Conflict ka pata user ko exact wajah ke saath do
+        if existing.get('internship_id') == profile['internship_id']:
+            reason = f"Internship ID {profile['internship_id']} pehle se registered hai ({existing.get('name')})."
+        else:
+            reason = f"Ye mobile number ({mobile}) pehle se registered hai as {existing.get('name')} ({existing.get('internship_id')})."
+        return jsonify({
+            "error": f"{reason} Dobara register karne ki zaroorat nahi — WhatsApp pe seedha 'WORK: ...' bhejo.",
+            "already_registered": True,
+            "existing": {
+                "name": existing.get('name'),
+                "internship_id": existing.get('internship_id'),
+                "mobile": existing.get('mobile')
+            }
+        }), 409   # HTTP 409 = Conflict
 
     # User ke diye fields jodo
     profile['mobile'] = mobile
