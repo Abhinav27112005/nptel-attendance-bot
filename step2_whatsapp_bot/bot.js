@@ -343,7 +343,14 @@ const client = new Client({
         // WHY: We don't need to SEE this browser — it just handles the connection.
         // The FORM FILLER browser (headless:false) is the one we want to see.
         headless: true,
-        args: ['--no-sandbox'] // Required on some Linux servers
+        // System Chromium use karo agar env var set hai (cloud servers pe disk
+        // bachata hai — bundled Chromium ~300 MB hota hai). Local dev pe yeh
+        // env var nahi hota, to default bundled wala chalega.
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        // --no-sandbox: Linux/Docker pe root user ke saath chalane ke liye.
+        // --disable-dev-shm-usage: /dev/shm 64MB tiny hota hai cloud pe — yeh
+        // /tmp use karne bolta hai (warna OOM crash hota hai).
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     }
 });
 
