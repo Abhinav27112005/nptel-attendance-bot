@@ -470,7 +470,22 @@ function alreadyProcessed(msg) {
     return false;
 }
 
+// Outer wrapper — async functions ke errors WhatsApp event emitter ke saath
+// silently swallowed ho jate hain (unhandled rejection). Yeh wrapper unko
+// catch karke log karta hai taaki bot chup-chap fail nahi ho.
 async function handleMessage(msg) {
+    try {
+        await _handleMessageInner(msg);
+    } catch (err) {
+        console.error('[handleMessage CRASH]', err);
+        // Best-effort: user ko bata do kuch toot gaya (warna kuchh nahi dikhega)
+        try {
+            await msg.reply('⚠️ Bot mein internal error. Logs check karo.');
+        } catch { /* ignore reply failure */ }
+    }
+}
+
+async function _handleMessageInner(msg) {
     // Pehla check: yeh message pehle process ho chuka? (dual-event dedup)
     if (alreadyProcessed(msg)) return;
 
@@ -560,10 +575,13 @@ async function handleMessage(msg) {
     // ---------------------------------------------------------
     if (linkMatch) {
         const internshipId = linkMatch[1].toUpperCase();
+        console.log(`[LINK] Request from ${senderId} for ID=${internshipId}`);
 
-        // Already linked?
+        // Already linked? (lookup by whatsapp_id OR mobile)
+        console.log('[LINK] Step 1: checking if already linked...');
         const { profile: existing } = await findUserByMessage(msg);
         if (existing) {
+            console.log(`[LINK] Already linked to ${existing.internship_id}`);
             await botReply(msg,
                 `✅ Already linked!\n👤 ${existing.name} (${existing.internship_id})`
             );
@@ -571,8 +589,12 @@ async function handleMessage(msg) {
         }
 
         // Find profile by ID, then save this WhatsApp ID into it.
+        console.log(`[LINK] Step 2: linking ${msg.from} → ${internshipId}`);
         const linked = await db.linkWhatsappId(internshipId, msg.from);
+        console.log(`[LINK] Step 3: db.linkWhatsappId returned ${linked}`);
+
         if (!linked) {
+            console.log(`[LINK] ID ${internshipId} NOT FOUND in DB`);
             await botReply(msg,
                 `❌ Internship ID *${internshipId}* not found.\n\n` +
                 `Please register first: ${BOT_CONFIG.REGISTER_URL}\n` +
@@ -581,7 +603,10 @@ async function handleMessage(msg) {
             return;
         }
 
+        console.log(`[LINK] Step 4: verifying save by re-fetching profile`);
         const { profile: verifyProfile } = await findUserByMessage(msg);
+        console.log(`[LINK] Step 5: verified — whatsapp_id=${verifyProfile?.whatsapp_id || 'MISSING!'}`);
+
         await botReply(msg,
             `✅ *Account linked!*\n\n` +
             `👤 ${verifyProfile?.name || '(name not set)'}\n` +
