@@ -26,6 +26,9 @@ venv/
 env/
 .venv/
 
+# Puppeteer Chrome cache — yeh Render build pe download hoti hai, repo mein nahi
+**/.cache/
+
 # Logs aur screenshots
 logs/
 **/logs/
