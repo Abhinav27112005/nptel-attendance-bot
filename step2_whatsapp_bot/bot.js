@@ -35,7 +35,7 @@
 //      intercepts messages, and exposes them as JavaScript events.
 // HOW IT WORKS: It opens WhatsApp Web in a hidden browser, simulates being logged in,
 //               and fires events when things happen (new message, QR code generated, etc.)
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, RemoteAuth } = require('whatsapp-web.js');
 
 // WHAT: qrcode-terminal renders a QR code as ASCII art in your terminal.
 // WHY: On first run, WhatsApp requires a QR scan to link your account.
@@ -346,16 +346,75 @@ let MY_LID = null;          // device-based @lid
 //   Without LocalAuth: scan QR every restart (annoying).
 //   With LocalAuth: scan once, session persists.
 
-const client = new Client({
-    authStrategy: new LocalAuth({
-        // Session data stored in this folder.
-        // Each restart reads from here — no new QR needed.
+// =============================================================================
+// AUTH STRATEGY SELECTION — MongoDB-backed (RemoteAuth) vs Filesystem (LocalAuth)
+// =============================================================================
+//   Render free tier mein filesystem EPHEMERAL hai — har deploy/restart pe
+//   .wwebjs_auth/ folder UDD jata hai. Iska matlab har baar fresh QR scan.
+//
+//   RemoteAuth WhatsApp session ko MongoDB Atlas mein store karta hai (encrypted
+//   blob ki tarah). Restart pe DB se load → bot turant connect, no QR.
+//
+//   Decision logic:
+//     - MONGODB_URI set hai (production / cloud) → RemoteAuth + MongoStore
+//     - Nahi set (local dev) → LocalAuth (filesystem persistence enough)
+//
+//   Yeh decision build karne ke liye ek async function chahiye (mongoose
+//   connect karna padta hai pehle). startBot() niche define hai.
+// =============================================================================
+
+function buildLocalAuthStrategy() {
+    return new LocalAuth({
         dataPath: path.join(__dirname, '.wwebjs_auth')
-    }),
+    });
+}
+
+async function buildMongoAuthStrategy() {
+    const { MongoStore } = require('wwebjs-mongo');
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+        await mongoose.connect(process.env.MONGODB_URI, {
+            // Reasonable timeouts for cloud DB
+            serverSelectionTimeoutMS: 10000,
+        });
+    }
+    const store = new MongoStore({ mongoose });
+    return new RemoteAuth({
+        store,
+        clientId: 'nptel-bot',                  // multi-bot isolation
+        backupSyncIntervalMs: 5 * 60 * 1000,     // every 5 min push session changes to Mongo
+        dataPath: path.join(__dirname, '.wwebjs_auth')  // local cache (synced with cloud)
+    });
+}
+
+async function getAuthStrategy() {
+    const uri = (process.env.MONGODB_URI || '').trim();
+    const useMongo = uri && !uri.includes('PASTE_YOUR');
+    if (!useMongo) {
+        console.log('[Auth] Mode: LocalAuth (filesystem) — session NOT preserved across cloud deploys');
+        return buildLocalAuthStrategy();
+    }
+    try {
+        const strategy = await buildMongoAuthStrategy();
+        console.log('[Auth] Mode: RemoteAuth (MongoDB) — session persists across deploys ✓');
+        return strategy;
+    } catch (err) {
+        console.error('[Auth] MongoDB auth failed, falling back to LocalAuth:', err.message);
+        return buildLocalAuthStrategy();
+    }
+}
+
+// Client placeholder — actual construction happens inside startBot() because
+// auth strategy resolution is async. All event handlers and HTTP server
+// registration still happen at module load (they reference `client` lazily
+// once it's assigned).
+let client = null;
+
+function createClient(authStrategy) {
+    return new Client({
+    authStrategy,
     puppeteer: {
         // headless: true = WhatsApp Web browser runs invisibly.
-        // WHY: We don't need to SEE this browser — it just handles the connection.
-        // The FORM FILLER browser (headless:false) is the one we want to see.
         headless: true,
         // System Chromium use karo agar env var set hai (cloud servers pe disk
         // bachata hai — bundled Chromium ~300 MB hota hai). Local dev pe yeh
@@ -366,12 +425,17 @@ const client = new Client({
         // /tmp use karne bolta hai (warna OOM crash hota hai).
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     }
-});
+    });
+}
 
 // --- BOT EVENTS --------------------------------------------------------------
 // LEARNING CONCEPT: Event Listeners
-//   .on('event_name', callback) registers a function to call when that event fires.
-//   This is the core pattern of event-driven programming.
+//   `client.on('event', cb)` registers callback for WhatsApp events.
+//   Pehle yeh module-load pe register hote the. Ab `client` async banta hai
+//   (RemoteAuth ke wajah se), to handlers ko ek function mein wrap karke
+//   startBot() se call karte hain.
+
+function registerClientEvents(client) {
 
 // EVENT: qr
 // WHEN: Client needs authentication (first run, or session expired)
@@ -490,26 +554,126 @@ healthApp.get('/health', (_req, res) => {
     });
 });
 
+// /qr — full HTML page jo polling karta hai status ke liye.
+// Jab tak QR pending hai, image dikhata. Scan hone par auto-detect aur success card.
 healthApp.get('/qr', (_req, res) => {
-    if (clientReady) {
-        return res.send(`
-            <html><body style="font-family:system-ui;text-align:center;padding:40px;background:#0a0e1a;color:#f1f5f9;">
-                <h2 style="color:#10b981;">✓ Bot already authenticated</h2>
-                <p>WhatsApp session active. No QR needed.</p>
-            </body></html>
-        `);
+    res.send(`<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NPTEL Bot — Link WhatsApp</title>
+<style>
+  :root { --bg:#0a0e1a; --card:#161c2e; --text:#f1f5f9; --dim:#94a3b8;
+          --accent:#3b82f6; --ok:#10b981; --warn:#f59e0b; --border:rgba(148,163,184,.12); }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5;
+    background-image:radial-gradient(900px circle at 20% -10%,rgba(59,130,246,.10),transparent 50%),
+                     radial-gradient(700px circle at 95% 110%,rgba(59,130,246,.06),transparent 50%);
+    background-attachment:fixed;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:32px 28px;max-width:440px;width:100%;text-align:center;
+    box-shadow:0 12px 40px rgba(0,0,0,.25);}
+  h1{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 22px}
+  .qr-wrap{background:#fff;border-radius:12px;padding:18px;display:inline-block;line-height:0;
+    transition:opacity .3s;}
+  .qr-wrap img{display:block;width:240px;height:240px}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(59,130,246,.12);
+    color:var(--accent);font-size:12px;font-weight:600;padding:6px 14px;border-radius:99px;margin:18px 0 12px;}
+  .badge::before{content:'';width:8px;height:8px;background:var(--accent);border-radius:50%;
+    animation:pulse 1.5s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .steps{text-align:left;font-size:13px;color:var(--dim);margin:14px 0 0;padding:14px 16px;
+    background:rgba(0,0,0,.2);border-radius:10px;border:1px solid var(--border);}
+  .steps b{color:var(--text)}
+  .steps ol{margin:0;padding-left:18px}
+  .success{padding:24px}
+  .success-icon{font-size:48px;margin-bottom:8px}
+  .success h1{color:var(--ok)}
+  .pending h1{color:var(--warn)}
+  .footer{margin-top:18px;font-size:11px;color:var(--dim);opacity:.6}
+</style>
+</head><body>
+<div id="root" class="card">
+  <div class="badge">Loading…</div>
+</div>
+<script>
+  const root = document.getElementById('root');
+
+  function renderQR() {
+    // cache-bust the image so it refreshes when QR rotates
+    const ts = Date.now();
+    root.innerHTML = \`
+      <h1>📱 Scan to Link WhatsApp</h1>
+      <p class="sub">Open WhatsApp → <b>Settings</b> → <b>Linked Devices</b> → <b>Link a Device</b></p>
+      <div class="qr-wrap"><img src="/qr.png?t=\${ts}" alt="QR code" /></div>
+      <div class="badge">Waiting for scan…</div>
+      <div class="steps">
+        <ol>
+          <li>QR scan hone ke baad <b>yeh page apne aap success dikhayega</b></li>
+          <li>Phone se ye page band <b>mat karo</b> jab tak ✓ confirm na ho</li>
+          <li>QR 20 sec mein refresh hota hai — auto-update yahi page karta hai</li>
+        </ol>
+      </div>
+      <div class="footer">Page polls /health every 2s</div>\`;
+  }
+
+  function renderPending() {
+    root.innerHTML = \`
+      <div class="pending">
+        <h1>⏳ Bot starting…</h1>
+        <p class="sub">QR thoda dhar mein ready hoga. Page automatically refresh hoga.</p>
+        <div class="badge">Initializing</div>
+      </div>\`;
+  }
+
+  function renderSuccess() {
+    root.innerHTML = \`
+      <div class="success">
+        <div class="success-icon">✅</div>
+        <h1>Connected!</h1>
+        <p class="sub">WhatsApp session active. Bot ab attendance commands sun raha hai.</p>
+        <div class="steps" style="text-align:center">Ab WhatsApp pe bhejо: <b>!status</b> ya <b>WORK: ...</b></div>
+      </div>\`;
+  }
+
+  let lastState = '';
+  async function poll() {
+    try {
+      const r = await fetch('/health', { cache: 'no-store' });
+      const d = await r.json();
+      const state = d.whatsapp_ready ? 'ready' : (d.qr_pending ? 'qr' : 'pending');
+      if (state !== lastState) {
+        lastState = state;
+        if (state === 'ready') renderSuccess();
+        else if (state === 'qr') renderQR();
+        else renderPending();
+      }
+      // If state didn't change but QR is active, refresh QR image timestamp anyway
+      // every 15s to catch new QR generation
+      else if (state === 'qr' && (Date.now() - lastQRRefresh) > 15000) {
+        renderQR(); lastQRRefresh = Date.now();
+      }
+    } catch (e) { /* ignore network blip */ }
+  }
+  let lastQRRefresh = Date.now();
+  poll();
+  setInterval(poll, 2000);
+</script>
+</body></html>`);
+});
+
+// /qr.png — raw PNG image, no HTML. <img src="/qr.png"> use karta hai.
+healthApp.get('/qr.png', (_req, res) => {
+    if (!currentQR || clientReady) {
+        // 1x1 transparent PNG (no QR available)
+        const blank = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=', 'base64');
+        res.type('png').send(blank);
+        return;
     }
-    if (!currentQR) {
-        return res.send(`
-            <html><head><meta http-equiv="refresh" content="3"></head>
-            <body style="font-family:system-ui;text-align:center;padding:40px;background:#0a0e1a;color:#f1f5f9;">
-                <h2>⏳ QR not ready yet...</h2>
-                <p>Page will auto-refresh in 3 sec.</p>
-            </body></html>
-        `);
-    }
-    // PNG QR image stream karo
     res.type('png');
+    res.set('Cache-Control', 'no-store');
     qrImage.image(currentQR, { type: 'png', size: 10 }).pipe(res);
 });
 
@@ -892,15 +1056,33 @@ async function _handleMessageInner(msg) {
 client.on('message', handleMessage);
 client.on('message_create', handleMessage);
 
+// EVENT: remote_session_saved (RemoteAuth only)
+// WHEN: backupSyncIntervalMs fires aur session DB pe sync hoti hai
+client.on('remote_session_saved', () => {
+    console.log('[Auth] Session backed up to MongoDB ✓');
+});
+
+}  // end registerClientEvents
+
 // --- START THE BOT -----------------------------------------------------------
 console.log('🤖 Starting NPTEL Attendance Bot...');
 console.log('📁 Users directory:', BOT_CONFIG.USERS_DIR);
 console.log('🐍 Form filler script:', BOT_CONFIG.FORM_FILLER_SCRIPT);
 console.log('');
 
-// WHAT: client.initialize() starts the Puppeteer browser that runs WhatsApp Web.
-// WHAT HAPPENS: Either shows QR code (first run) or loads saved session and connects.
-client.initialize();
+async function startBot() {
+    const authStrategy = await getAuthStrategy();
+    client = createClient(authStrategy);
+    registerClientEvents(client);
+    // client.initialize() starts the Puppeteer browser that runs WhatsApp Web.
+    // Either shows QR code (first run) or loads saved session and connects.
+    client.initialize();
+}
+
+startBot().catch(err => {
+    console.error('[FATAL] startBot crashed:', err);
+    process.exit(1);
+});
 
 // =============================================================================
 // GRACEFUL SHUTDOWN — Ctrl+C aur cloud-host SIGTERM ko properly handle karo
@@ -922,10 +1104,13 @@ async function gracefulShutdown(signal) {
     console.log(`\n👋 ${signal} received — closing WhatsApp client cleanly...`);
     try {
         // 8-second budget for client.destroy(); warna force exit
-        await Promise.race([
-            client.destroy(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
-        ]);
+        // client null ho sakta hai agar startBot() puri tarah complete nahi hua
+        if (client && typeof client.destroy === 'function') {
+            await Promise.race([
+                client.destroy(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+            ]);
+        }
         console.log('✅ Session saved. Bye.');
     } catch (e) {
         console.log('⚠️ Clean shutdown failed:', e.message);
