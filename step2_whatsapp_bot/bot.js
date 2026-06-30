@@ -81,9 +81,15 @@ const db = require('./db');
 const express = require('express');
 const qrImage = require('qr-image');
 
-// QR ka latest data + ready state — /qr aur /health endpoints use karte hain
+// WhatsApp client ki connection states track karo — /qr UI yeh use karta hai
+// 4 distinct states banti hain user perspective se:
+//   1. INITIALIZING  → bot boot ho raha, QR abhi generate nahi hua
+//   2. WAITING_SCAN  → QR ready, user ko scan karna hai
+//   3. AUTHENTICATING→ User ne scan kar liya, session setup chal raha (~5-15 sec)
+//   4. READY         → Fully connected, messages handle ho rahe
 let currentQR = null;
 let clientReady = false;
+let clientAuthenticated = false;  // scan ho gaya, ready hone ka wait
 
 // --- CONFIGURATION -----------------------------------------------------------
 // WHAT: Central config object for bot behavior.
@@ -439,21 +445,32 @@ function registerClientEvents(client) {
 
 // EVENT: qr
 // WHEN: Client needs authentication (first run, or session expired)
-// WHAT: Displays the QR code in terminal for you to scan
+// WHAT: New QR generated (har 20 sec rotate hota hai jab tak scan na ho)
 client.on('qr', (qr) => {
-    currentQR = qr;          // /qr endpoint ke liye save
+    // Agar already authenticated hai (scan ho gaya), to baad mein aane wale
+    // QR ko ignore karo — UI mein freshness chhupayega.
+    if (clientAuthenticated) return;
+    currentQR = qr;
     clientReady = false;
-    console.log('\n📱 QR ready. Terminal scan kar sakte ho, ya browser pe:');
-    console.log(`   <your-render-url>/qr   (cloud deploy ke liye)\n`);
+    console.log('\n📱 QR ready. Browser pe scan karo: <render-url>/qr\n');
     qrcode.generate(qr, { small: true });
-    console.log('\nOpen WhatsApp → Settings → Linked Devices → Link a Device\n');
+});
+
+// EVENT: authenticated
+// WHEN: User scanned the QR successfully. Session establish ho rahi, ready abhi nahi.
+// WHAT: QR ko turant freeze karo. UI "Connecting..." pe switch ho jayega.
+client.on('authenticated', () => {
+    clientAuthenticated = true;
+    currentQR = null;        // turant QR clear karo
+    console.log('✓ Scan detected — establishing session...');
 });
 
 // EVENT: ready
-// WHEN: Client is connected and ready to receive messages
+// WHEN: Client is fully connected and ready to receive messages
 client.on('ready', async () => {
-    currentQR = null;        // QR khatam — /qr endpoint will say "already authenticated"
+    currentQR = null;
     clientReady = true;
+    clientAuthenticated = true;
 
     // Capture phone-based ID (@c.us)
     MY_WHATSAPP_ID = client.info.wid._serialized;
@@ -507,12 +524,39 @@ client.on('auth_failure', (msg) => {
 });
 
 // EVENT: disconnected
-// WHEN: WhatsApp disconnects (phone offline, internet lost, etc.)
-client.on('disconnected', (reason) => {
+// WHEN: WhatsApp disconnects (phone offline, manual logout, session expired)
+//
+// HANDLING:
+//   - LOGOUT  → session DEAD. Stored session bhi delete karo. Process exit
+//               karo — Render restart karega aur fresh QR ke liye prompt.
+//   - Other   → transient (network blip) — wait 5 sec aur reconnect.
+client.on('disconnected', async (reason) => {
     clientReady = false;
+    clientAuthenticated = false;
+    currentQR = null;
     console.log('⚠️ WhatsApp disconnected:', reason);
-    console.log('🔄 Reconnecting in 5 seconds...');
-    setTimeout(() => client.initialize(), 5000);
+
+    if (reason === 'LOGOUT' || reason === 'CONFLICT') {
+        // Session purani / phone se manually unlinked. Stored session ko
+        // saaf karo aur fresh start ke liye exit. Render apne aap restart karega.
+        console.log('🚫 Session dead — clearing storage and exiting for fresh QR');
+        try {
+            // RemoteAuth ke saath client.logout() store mein delete karta hai
+            await Promise.race([
+                client.logout(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('logout timeout')), 8000))
+            ]);
+        } catch (e) {
+            console.log('  (logout cleanup failed, non-fatal):', e.message);
+        }
+        process.exit(1);  // Render auto-restart → fresh QR on next boot
+    }
+
+    console.log('🔄 Transient disconnect — reconnecting in 5 seconds...');
+    setTimeout(() => {
+        try { client.initialize(); }
+        catch (e) { console.error('Reconnect failed:', e.message); }
+    }, 5000);
 });
 
 // =============================================================================
@@ -545,17 +589,26 @@ healthApp.get('/', (_req, res) => {
 });
 
 healthApp.get('/health', (_req, res) => {
+    // Compute 4-state machine for client UI
+    let state;
+    if (clientReady) state = 'ready';
+    else if (clientAuthenticated) state = 'connecting';   // scan ho gaya, ready ka wait
+    else if (currentQR) state = 'qr';                     // QR ready, scan ka wait
+    else state = 'initializing';                          // bot boot ho raha
+
     res.json({
-        status: clientReady ? 'ready' : 'initializing',
+        status: state,
         whatsapp_ready: clientReady,
+        whatsapp_authenticated: clientAuthenticated,
+        qr_pending: currentQR !== null,
         uptime_seconds: Math.floor(process.uptime()),
-        memory_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
-        qr_pending: currentQR !== null
+        memory_mb: Math.round(process.memoryUsage().rss / 1024 / 1024)
     });
 });
 
-// /qr — full HTML page jo polling karta hai status ke liye.
-// Jab tak QR pending hai, image dikhata. Scan hone par auto-detect aur success card.
+// /qr — Full HTML page with 4-state machine + live polling.
+// States: initializing → qr → connecting (scan detected) → ready
+// QR is FROZEN immediately on scan (real WhatsApp Web jaisa behaviour).
 healthApp.get('/qr', (_req, res) => {
     res.send(`<!DOCTYPE html>
 <html lang="en"><head>
@@ -576,90 +629,150 @@ healthApp.get('/qr', (_req, res) => {
     box-shadow:0 12px 40px rgba(0,0,0,.25);}
   h1{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
   .sub{color:var(--dim);font-size:13px;margin:0 0 22px}
+
+  /* QR display, with overlay support */
   .qr-wrap{background:#fff;border-radius:12px;padding:18px;display:inline-block;line-height:0;
-    transition:opacity .3s;}
+    position:relative;transition:filter .35s, opacity .35s;}
   .qr-wrap img{display:block;width:240px;height:240px}
-  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(59,130,246,.12);
-    color:var(--accent);font-size:12px;font-weight:600;padding:6px 14px;border-radius:99px;margin:18px 0 12px;}
-  .badge::before{content:'';width:8px;height:8px;background:var(--accent);border-radius:50%;
-    animation:pulse 1.5s infinite;}
+  .qr-wrap.frozen{filter:blur(8px) brightness(.7);opacity:.5;pointer-events:none}
+  .qr-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:rgba(16,185,129,.95);color:#fff;width:80px;height:80px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:42px;
+    opacity:0;transition:opacity .35s, transform .35s;pointer-events:none;}
+  .qr-wrap.frozen .qr-overlay{opacity:1;transform:translate(-50%,-50%) scale(1.1)}
+
+  /* status badges */
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;
+    padding:6px 14px;border-radius:99px;margin:18px 0 12px;}
+  .badge::before{content:'';width:8px;height:8px;border-radius:50%;animation:pulse 1.5s infinite;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .badge.qr {background:rgba(59,130,246,.12);color:var(--accent);}
+  .badge.qr::before {background:var(--accent);}
+  .badge.connecting {background:rgba(245,158,11,.12);color:var(--warn);}
+  .badge.connecting::before {background:var(--warn);}
+  .badge.ready {background:rgba(16,185,129,.12);color:var(--ok);}
+  .badge.ready::before {background:var(--ok);animation:none}
+
+  /* Spinner for connecting state */
+  .spinner{width:48px;height:48px;border:4px solid rgba(245,158,11,.2);
+    border-top-color:var(--warn);border-radius:50%;animation:spin 0.8s linear infinite;
+    margin:8px auto 16px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
   .steps{text-align:left;font-size:13px;color:var(--dim);margin:14px 0 0;padding:14px 16px;
     background:rgba(0,0,0,.2);border-radius:10px;border:1px solid var(--border);}
   .steps b{color:var(--text)}
   .steps ol{margin:0;padding-left:18px}
-  .success{padding:24px}
-  .success-icon{font-size:48px;margin-bottom:8px}
-  .success h1{color:var(--ok)}
+  .success-icon{font-size:56px;margin-bottom:8px;animation:pop .4s ease}
+  @keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+  .ok h1{color:var(--ok)}
   .pending h1{color:var(--warn)}
   .footer{margin-top:18px;font-size:11px;color:var(--dim);opacity:.6}
 </style>
 </head><body>
 <div id="root" class="card">
-  <div class="badge">Loading…</div>
+  <div class="badge qr">Loading…</div>
 </div>
 <script>
   const root = document.getElementById('root');
 
+  function renderInit() {
+    root.innerHTML = \`
+      <div class="pending">
+        <h1>⏳ Bot starting…</h1>
+        <p class="sub">Puppeteer Chrome boot ho raha. QR ~10 sec mein dikhega.</p>
+        <div class="spinner"></div>
+      </div>\`;
+  }
+
   function renderQR() {
-    // cache-bust the image so it refreshes when QR rotates
+    // cache-bust ke saath fresh QR image lo
     const ts = Date.now();
     root.innerHTML = \`
       <h1>📱 Scan to Link WhatsApp</h1>
       <p class="sub">Open WhatsApp → <b>Settings</b> → <b>Linked Devices</b> → <b>Link a Device</b></p>
-      <div class="qr-wrap"><img src="/qr.png?t=\${ts}" alt="QR code" /></div>
-      <div class="badge">Waiting for scan…</div>
+      <div id="qrWrap" class="qr-wrap">
+        <img src="/qr.png?t=\${ts}" alt="QR code" />
+        <div class="qr-overlay">✓</div>
+      </div>
+      <div class="badge qr">Waiting for scan…</div>
       <div class="steps">
         <ol>
-          <li>QR scan hone ke baad <b>yeh page apne aap success dikhayega</b></li>
-          <li>Phone se ye page band <b>mat karo</b> jab tak ✓ confirm na ho</li>
-          <li>QR 20 sec mein refresh hota hai — auto-update yahi page karta hai</li>
+          <li>Phone se camera QR pe focus karo</li>
+          <li>Scan hote hi QR <b>freeze ho jayega</b> aur status update milega</li>
+          <li>~10 sec session connect mein lagte hain — page band mat karo</li>
         </ol>
-      </div>
-      <div class="footer">Page polls /health every 2s</div>\`;
+      </div>\`;
   }
 
-  function renderPending() {
+  function renderConnecting() {
+    // Freeze the QR image instead of removing it — UX hint that scan was detected
+    const wrap = document.getElementById('qrWrap');
+    if (wrap) {
+      wrap.classList.add('frozen');
+      // Update badge + steps section in place
+      const badge = root.querySelector('.badge');
+      if (badge) {
+        badge.className = 'badge connecting';
+        badge.textContent = 'Scan detected — connecting…';
+      }
+      const steps = root.querySelector('.steps');
+      if (steps) {
+        steps.innerHTML = '<b>✓ Scan successful!</b><br>Session establish ho rahi, ~5-15 sec lagega…';
+      }
+      return;
+    }
+    // Agar QR page render hi nahi tha (deep link directly to /qr after restart), fallback
     root.innerHTML = \`
       <div class="pending">
-        <h1>⏳ Bot starting…</h1>
-        <p class="sub">QR thoda dhar mein ready hoga. Page automatically refresh hoga.</p>
-        <div class="badge">Initializing</div>
+        <h1>⏳ Connecting…</h1>
+        <p class="sub">Scan detected, WhatsApp session establish ho rahi…</p>
+        <div class="spinner"></div>
+        <div class="badge connecting">Authenticating</div>
       </div>\`;
   }
 
-  function renderSuccess() {
+  function renderReady() {
     root.innerHTML = \`
-      <div class="success">
+      <div class="ok">
         <div class="success-icon">✅</div>
         <h1>Connected!</h1>
-        <p class="sub">WhatsApp session active. Bot ab attendance commands sun raha hai.</p>
-        <div class="steps" style="text-align:center">Ab WhatsApp pe bhejо: <b>!status</b> ya <b>WORK: ...</b></div>
+        <p class="sub">WhatsApp session active. Bot attendance commands ke liye ready hai.</p>
+        <div class="badge ready">Online</div>
+        <div class="steps" style="text-align:center">
+          Ab WhatsApp pe bhejо: <b>!status</b> ya <b>WORK: aaj jo kaam kiya</b>
+        </div>
       </div>\`;
   }
 
-  let lastState = '';
+  let lastState = null;
+  let lastQRTs = 0;
+
   async function poll() {
     try {
       const r = await fetch('/health', { cache: 'no-store' });
       const d = await r.json();
-      const state = d.whatsapp_ready ? 'ready' : (d.qr_pending ? 'qr' : 'pending');
+      const state = d.status;  // initializing | qr | connecting | ready
+
+      // State transitions: re-render only on change
       if (state !== lastState) {
+        if (state === 'initializing') renderInit();
+        else if (state === 'qr') { renderQR(); lastQRTs = Date.now(); }
+        else if (state === 'connecting') renderConnecting();
+        else if (state === 'ready') renderReady();
         lastState = state;
-        if (state === 'ready') renderSuccess();
-        else if (state === 'qr') renderQR();
-        else renderPending();
+        return;
       }
-      // If state didn't change but QR is active, refresh QR image timestamp anyway
-      // every 15s to catch new QR generation
-      else if (state === 'qr' && (Date.now() - lastQRRefresh) > 15000) {
-        renderQR(); lastQRRefresh = Date.now();
+      // Same state — only refresh QR image every 15s while in 'qr' state
+      if (state === 'qr' && (Date.now() - lastQRTs) > 15000) {
+        const img = root.querySelector('.qr-wrap img');
+        if (img) img.src = '/qr.png?t=' + Date.now();
+        lastQRTs = Date.now();
       }
-    } catch (e) { /* ignore network blip */ }
+    } catch (e) { /* ignore transient network errors */ }
   }
-  let lastQRRefresh = Date.now();
   poll();
-  setInterval(poll, 2000);
+  setInterval(poll, 1500);
 </script>
 </body></html>`);
 });

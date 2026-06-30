@@ -432,15 +432,11 @@
                 const alreadyLinked = !!data.already_linked;
 
                 // Decide title + body based on state.
-                // Fresh registration  →  "Registered!"
-                // Already registered, not linked  →  "Already registered" + Verify button
-                // Already registered and linked  →  "All set" + no button (just info)
                 const titleIcon = alreadyReg ? '↻' : '✓';
                 const titleText = alreadyReg
                     ? (alreadyLinked ? 'Already set up' : 'Already registered')
                     : 'Registration successful';
 
-                // Verify button shown unless already linked (no point linking twice).
                 const showButton = data.verify_url && !alreadyLinked;
                 const verifyBtn = showButton
                     ? `<a class="verify-btn" href="${data.verify_url}" target="_blank">
@@ -449,6 +445,33 @@
                        </a>
                        <div class="verify-hint">Opens WhatsApp with the LINK command pre-filled — just hit <b>Send</b>.</div>`
                     : '';
+
+                // SUCCESS UX: hide form completely, show only result card with smooth transition.
+                // "Register Again" link allows correction without page reload.
+                form.style.transition = 'all 0.3s ease';
+                form.style.opacity = '0';
+                form.style.maxHeight = '0';
+                form.style.overflow = 'hidden';
+                form.style.marginTop = '0';
+                form.style.pointerEvents = 'none';
+
+                // Update progress steps to show step 2 active
+                const stepsEl = document.querySelector('.steps');
+                if (stepsEl) {
+                    const steps = stepsEl.querySelectorAll('.step');
+                    if (steps[0]) steps[0].classList.remove('active');
+                    if (steps[1]) steps[1].classList.add('active');
+                }
+
+                // Update hero text to reflect success
+                const heroH2 = document.querySelector('.hero h2');
+                const heroP  = document.querySelector('.hero p');
+                if (heroH2) heroH2.innerHTML = alreadyReg
+                    ? `Welcome back, <span class="accent">${escapeHtml(p.name.split(' ')[0] || 'friend')}</span>!`
+                    : `Welcome aboard, <span class="accent">${escapeHtml(p.name.split(' ')[0] || 'friend')}</span>!`;
+                if (heroP) heroP.textContent = alreadyLinked
+                    ? 'Your account is already linked. Just send WORK: ... on WhatsApp.'
+                    : 'One more tap and you\\'re done — link your WhatsApp to start marking attendance.';
 
                 resultDiv.innerHTML = `
                     <div class="result-card success">
@@ -466,13 +489,29 @@
                             <div class="summary-row"><span>End Date</span><b>${escapeHtml(p.end_date)}</b></div>
                             <div class="summary-row"><span>Mobile</span><b>${escapeHtml(p.mobile)}</b></div>
                         </div>
+                        <button type="button" id="redoBtn" style="margin-top:18px;background:transparent;color:var(--text-dim);border:1px solid var(--border-strong);padding:10px 16px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;width:100%;">
+                            ← Wrong details? Register again
+                        </button>
                     </div>`;
+
+                // Scroll to result smoothly (top of viewport) so user sees full success card
+                setTimeout(() => {
+                    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 350);   // wait for form-hide transition
+
+                // "Register again" → reload page
+                const redoBtn = document.getElementById('redoBtn');
+                if (redoBtn) redoBtn.addEventListener('click', () => location.reload());
             } else {
                 resultDiv.innerHTML = `
                     <div class="result-card error">
                         <div class="result-title">✕ Couldn't register</div>
                         <div>${escapeHtml(data.error)}</div>
                     </div>`;
+                // Scroll to error so user sees it
+                setTimeout(() => {
+                    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
             }
         } catch (err) {
             resultDiv.style.display = 'block';
