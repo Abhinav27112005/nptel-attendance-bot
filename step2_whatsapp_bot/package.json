@@ -5,7 +5,8 @@
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
-    "dev": "node --watch bot.js"
+    "dev": "node --watch bot.js",
+    "postinstall": "npx puppeteer browsers install chrome || echo 'Chrome install skipped (probably local dev)'"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
