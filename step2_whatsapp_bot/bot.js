@@ -71,6 +71,20 @@ const { buildPrefilledUrl } = require('./prefill');
 // WHY: Multi-user + Render deployment ke liye. .env ke MONGODB_URI pe depend karta hai.
 const db = require('./db');
 
+// WHAT: Express + qr-image — tiny HTTP server jo cloud hosts (Render etc.) ko
+//   "service alive hai" prove karne ke liye port bind karta hai.
+// WHY:
+//   - Render Web Service ko PORT bind karna ZAROORI hai warna deploy fail
+//   - /health endpoint UptimeRobot use karta hai (every 5 min ping → no sleep)
+//   - /qr endpoint cloud ke khoofnaak headless terminal ka solution hai —
+//     browser mein QR image dikhega aur tum phone se scan kar loge
+const express = require('express');
+const qrImage = require('qr-image');
+
+// QR ka latest data + ready state — /qr aur /health endpoints use karte hain
+let currentQR = null;
+let clientReady = false;
+
 // --- CONFIGURATION -----------------------------------------------------------
 // WHAT: Central config object for bot behavior.
 // WHY single object? If settings are scattered across the file, you forget where to change them.
@@ -363,8 +377,10 @@ const client = new Client({
 // WHEN: Client needs authentication (first run, or session expired)
 // WHAT: Displays the QR code in terminal for you to scan
 client.on('qr', (qr) => {
-    console.log('\n📱 Scan this QR code with WhatsApp to log in:\n');
-    // qrcode.generate() renders the QR as ASCII art in the terminal
+    currentQR = qr;          // /qr endpoint ke liye save
+    clientReady = false;
+    console.log('\n📱 QR ready. Terminal scan kar sakte ho, ya browser pe:');
+    console.log(`   <your-render-url>/qr   (cloud deploy ke liye)\n`);
     qrcode.generate(qr, { small: true });
     console.log('\nOpen WhatsApp → Settings → Linked Devices → Link a Device\n');
 });
@@ -372,6 +388,9 @@ client.on('qr', (qr) => {
 // EVENT: ready
 // WHEN: Client is connected and ready to receive messages
 client.on('ready', async () => {
+    currentQR = null;        // QR khatam — /qr endpoint will say "already authenticated"
+    clientReady = true;
+
     // Capture phone-based ID (@c.us)
     MY_WHATSAPP_ID = client.info.wid._serialized;
 
@@ -426,9 +445,77 @@ client.on('auth_failure', (msg) => {
 // EVENT: disconnected
 // WHEN: WhatsApp disconnects (phone offline, internet lost, etc.)
 client.on('disconnected', (reason) => {
+    clientReady = false;
     console.log('⚠️ WhatsApp disconnected:', reason);
     console.log('🔄 Reconnecting in 5 seconds...');
     setTimeout(() => client.initialize(), 5000);
+});
+
+// =============================================================================
+// HEALTH / QR / STATUS HTTP SERVER
+//
+// WHY:
+//   - Render Web Service ko PORT pe bind hona ZAROORI hai. Bina yeh service
+//     deploy fail ho jata hai ("Port scan timeout").
+//   - /health endpoint UptimeRobot (free monitoring) ping karta hai har 5 min
+//     → service kabhi 15-min-idle sleep mein nahi jati.
+//   - /qr endpoint: cloud pe terminal QR scan possible nahi. Yeh QR ko PNG
+//     image ke roop mein serve karta hai — phone se direct browser open
+//     karke scan kar sakte ho.
+// =============================================================================
+
+const healthApp = express();
+const PORT = process.env.PORT || 3000;
+
+healthApp.get('/', (_req, res) => {
+    res.send(`
+        <html><head><title>NPTEL Bot</title></head>
+        <body style="font-family:system-ui;text-align:center;padding:40px;background:#0a0e1a;color:#f1f5f9;">
+            <h1 style="color:#3b82f6;">NPTEL Attendance Bot</h1>
+            <p>Status: <b style="color:${clientReady ? '#10b981' : '#f59e0b'}">${clientReady ? '✓ Ready' : '⏳ Initializing'}</b></p>
+            <p>Uptime: ${Math.floor(process.uptime() / 60)} minutes</p>
+            ${!clientReady ? '<p><a style="color:#3b82f6" href="/qr">📱 Scan QR Code</a></p>' : ''}
+            <p style="opacity:.5;font-size:12px;margin-top:30px;">Health endpoint: <code>/health</code></p>
+        </body></html>
+    `);
+});
+
+healthApp.get('/health', (_req, res) => {
+    res.json({
+        status: clientReady ? 'ready' : 'initializing',
+        whatsapp_ready: clientReady,
+        uptime_seconds: Math.floor(process.uptime()),
+        memory_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+        qr_pending: currentQR !== null
+    });
+});
+
+healthApp.get('/qr', (_req, res) => {
+    if (clientReady) {
+        return res.send(`
+            <html><body style="font-family:system-ui;text-align:center;padding:40px;background:#0a0e1a;color:#f1f5f9;">
+                <h2 style="color:#10b981;">✓ Bot already authenticated</h2>
+                <p>WhatsApp session active. No QR needed.</p>
+            </body></html>
+        `);
+    }
+    if (!currentQR) {
+        return res.send(`
+            <html><head><meta http-equiv="refresh" content="3"></head>
+            <body style="font-family:system-ui;text-align:center;padding:40px;background:#0a0e1a;color:#f1f5f9;">
+                <h2>⏳ QR not ready yet...</h2>
+                <p>Page will auto-refresh in 3 sec.</p>
+            </body></html>
+        `);
+    }
+    // PNG QR image stream karo
+    res.type('png');
+    qrImage.image(currentQR, { type: 'png', size: 10 }).pipe(res);
+});
+
+healthApp.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Health] HTTP server listening on port ${PORT}`);
+    console.log(`[Health] /qr endpoint ready for QR scanning`);
 });
 
 // --- MAIN MESSAGE HANDLER ---------------------------------------------------
