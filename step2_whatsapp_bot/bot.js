@@ -901,3 +901,43 @@ console.log('');
 // WHAT: client.initialize() starts the Puppeteer browser that runs WhatsApp Web.
 // WHAT HAPPENS: Either shows QR code (first run) or loads saved session and connects.
 client.initialize();
+
+// =============================================================================
+// GRACEFUL SHUTDOWN — Ctrl+C aur cloud-host SIGTERM ko properly handle karo
+//
+// WHY THIS MATTERS:
+//   Abrupt kill (Ctrl+C without cleanup) se WhatsApp session disk pe
+//   poori tarah save nahi hoti. Result: next startup pe corrupted session
+//   → QR loop. Yeh handler client ko gracefully destroy karta hai pehle
+//   exit karne se → session safely flush hoti hai.
+//
+//   Render aur cloud hosts SIGTERM bhejte hain (jab tak 10 sec mein
+//   process exit nahi hota, force kill SIGKILL). Yeh handler 10 sec
+//   ke andar clean shutdown ensure karta hai.
+// =============================================================================
+let shuttingDown = false;
+async function gracefulShutdown(signal) {
+    if (shuttingDown) return;       // double-Ctrl+C → force exit
+    shuttingDown = true;
+    console.log(`\n👋 ${signal} received — closing WhatsApp client cleanly...`);
+    try {
+        // 8-second budget for client.destroy(); warna force exit
+        await Promise.race([
+            client.destroy(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+        ]);
+        console.log('✅ Session saved. Bye.');
+    } catch (e) {
+        console.log('⚠️ Clean shutdown failed:', e.message);
+    }
+    process.exit(0);
+}
+
+process.on('SIGINT',  () => gracefulShutdown('SIGINT'));   // Ctrl+C
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));  // cloud host stop
+
+// Unhandled promise rejections (jaise prefill DB call jo error throw kare)
+// bot ko crash kar dete the silently. Yahan log karte hain — bot zinda rehta hai.
+process.on('unhandledRejection', (err) => {
+    console.error('[UNHANDLED REJECTION]', err);
+});
