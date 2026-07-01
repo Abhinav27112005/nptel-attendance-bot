@@ -398,6 +398,15 @@ async function buildMongoAuthStrategy() {
 }
 
 async function getAuthStrategy() {
+    // FORCE_LOCAL_AUTH=true → filesystem session, chahe MONGODB_URI set ho.
+    // Termux/phone/VPS jaisi jagah jahan disk PERMANENT hai, LocalAuth reliable
+    // hai — RemoteAuth ka Mongo-zip backup (jo kabhi-kabhi ENOENT deta) nahi chahiye.
+    // Render jaisi ephemeral jagah pe yeh mat set karna (wahan RemoteAuth zaroori).
+    if (process.env.FORCE_LOCAL_AUTH === 'true') {
+        console.log('[Auth] Mode: LocalAuth (FORCED) — session phone/VPS disk pe persist hogi');
+        return buildLocalAuthStrategy();
+    }
+
     const uri = (process.env.MONGODB_URI || '').trim();
     const useMongo = uri && !uri.includes('PASTE_YOUR');
     if (!useMongo) {
