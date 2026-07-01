@@ -90,6 +90,7 @@ const qrImage = require('qr-image');
 let currentQR = null;
 let clientReady = false;
 let clientAuthenticated = false;  // scan ho gaya, ready hone ka wait
+let remindersStarted = false;     // 'ready' reconnect pe cron dobara na banaye
 
 // --- CONFIGURATION -----------------------------------------------------------
 // WHAT: Central config object for bot behavior.
@@ -531,20 +532,26 @@ client.on('ready', async () => {
     await db.connect();
     console.log(`[DB] Mode: ${db.usingCloud() ? 'MongoDB (cloud)' : 'local files'}`);
 
-    // Reminder scheduler — async getTargets fetches all registered users from DB.
-    // Prefer whatsapp_id (the actual @lid/@c.us the user messages from) so the
-    // reminder reaches them even on @lid-only accounts. Fall back to mobile@c.us.
-    startReminders(client, async () => {
-        const users = await db.getAllUsers();
-        return users
-            .filter(p => p && p.internship_id)
-            .map(p => ({
-                id: p.whatsapp_id || `${(p.mobile || '').replace(/[+\s]/g, '')}@c.us`,
-                name: p.name || p.internship_id,
-                internshipId: p.internship_id
-            }))
-            .filter(t => t.id);  // drop ones with no usable id
-    });
+    // Reminder scheduler — IDEMPOTENT: 'ready' event reconnect ke baad dobara fire
+    // ho sakti hai (WhatsApp session refresh). Har baar startReminders call karne
+    // se ek naya cron register hota hai → duplicate reminders. Flag se roko.
+    //
+    // getTargets ab SIRF linked users ko target karta hai — jo LINK command
+    // bhej chuke hain aur whatsapp_id DB mein save hai. Unlinked users ko
+    // mobile@c.us pe reminder bhejna WhatsApp se fail hota hai ("No LID for user").
+    if (!remindersStarted) {
+        startReminders(client, async () => {
+            const users = await db.getAllUsers();
+            return users
+                .filter(p => p && p.internship_id && p.whatsapp_id)  // MUST be linked
+                .map(p => ({
+                    id: p.whatsapp_id,
+                    name: p.name || p.internship_id,
+                    internshipId: p.internship_id
+                }));
+        });
+        remindersStarted = true;
+    }
 });
 
 // EVENT: auth_failure
@@ -891,10 +898,17 @@ async function _handleMessageInner(msg) {
     // Pehla check: yeh message pehle process ho chuka? (dual-event dedup)
     if (alreadyProcessed(msg)) return;
 
-    // Capture our own @lid from the first self-message we see.
-    // WHY: window.Store.Me.lid is null in this whatsapp-web.js version,
-    //      but msg.to on a self-message contains our @lid — so we grab it here.
-    if (msg.fromMe && msg.to && msg.to.endsWith('@lid') && !MY_LID) {
+    // Capture our own @lid from a self-message (jab tum khud ko message bhejte ho).
+    // STRICTER CONDITIONS taaki galat @lid na pakde:
+    //   1. msg.fromMe === true (definitely sent by our account)
+    //   2. msg.from === msg.to (self-message — tumhi ne tumhi ko bheja)
+    //   3. Extension @lid hai (@c.us user ka nahi)
+    //   4. MY_LID abhi tak set nahi (idempotent — dobara overwrite nahi)
+    //
+    // Purana bug: sirf msg.to.endsWith('@lid') check hota tha. Fir agar bot ne
+    // apni reply kisi @lid user ko bheji, wo user ka LID capture ho jata tha,
+    // aur us user ke aage ke messages "bot's own reply" samajh ke ignore hote.
+    if (msg.fromMe && msg.from === msg.to && msg.to?.endsWith('@lid') && !MY_LID) {
         MY_LID = msg.to;
         console.log(`[Debug] Captured own @lid: ${MY_LID}`);
     }
