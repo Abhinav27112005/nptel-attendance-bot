@@ -842,6 +842,38 @@ healthApp.listen(PORT, '0.0.0.0', () => {
     console.log(`[Health] /qr endpoint ready for QR scanning`);
 });
 
+// =============================================================================
+// HEARTBEAT — "Bot down" alert via healthchecks.io
+//
+// WHY: Bot phone/Termux pe chalta hai — battery, network ya crash se chup-chaap
+//   band ho sakta hai aur pata nahi chalta. Yeh har 5 min healthchecks.io ko
+//   ek ping bhejta hai (SIRF jab WhatsApp connected ho). Ping ruk gaya to
+//   healthchecks.io tumhe email/telegram alert bhejta hai.
+//
+// SETUP: .env mein HEALTHCHECK_URL=https://hc-ping.com/<your-uuid> daalo.
+//   Na set ho to yeh chup-chaap skip ho jata hai (koi error nahi).
+// =============================================================================
+function startHeartbeat() {
+    const url = (process.env.HEALTHCHECK_URL || '').trim();
+    if (!url || !url.startsWith('http')) {
+        console.log('[Heartbeat] HEALTHCHECK_URL set nahi — down-alerts OFF');
+        return;
+    }
+    const ping = async () => {
+        // Sirf tab ping karo jab WhatsApp sach mein connected ho.
+        // Isse process-death AUR WhatsApp-disconnect dono catch hote hain.
+        if (!clientReady) return;
+        try {
+            await fetch(url, { method: 'GET' });
+        } catch (e) {
+            console.log('[Heartbeat] ping fail (network?):', e.message);
+        }
+    };
+    setInterval(ping, 5 * 60 * 1000);  // har 5 min
+    console.log('[Heartbeat] ON — healthchecks.io ko har 5 min ping (jab connected)');
+}
+startHeartbeat();
+
 // --- MAIN MESSAGE HANDLER ---------------------------------------------------
 // EVENT: message
 // WHEN: ANY message is received (from any chat, any sender)
