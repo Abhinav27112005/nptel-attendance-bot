@@ -388,7 +388,10 @@ async function buildMongoAuthStrategy() {
     return new RemoteAuth({
         store,
         clientId: 'nptel-bot',                  // multi-bot isolation
-        backupSyncIntervalMs: 5 * 60 * 1000,     // every 5 min push session changes to Mongo
+        // 60 sec — jaldi backup taaki agar Render OOM se pehle kill ho jaye, tab
+        // bhi session Mongo pe save ho chuki ho. 5 min gap tha, us mein bot
+        // 30-60 sec mein crash ho jata tha to session kabhi persist nahi hoti thi.
+        backupSyncIntervalMs: 60 * 1000,
         dataPath: path.join(__dirname, '.wwebjs_auth')  // local cache (synced with cloud)
     });
 }
@@ -420,16 +423,44 @@ function createClient(authStrategy) {
     return new Client({
     authStrategy,
     puppeteer: {
-        // headless: true = WhatsApp Web browser runs invisibly.
         headless: true,
-        // System Chromium use karo agar env var set hai (cloud servers pe disk
-        // bachata hai — bundled Chromium ~300 MB hota hai). Local dev pe yeh
-        // env var nahi hota, to default bundled wala chalega.
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-        // --no-sandbox: Linux/Docker pe root user ke saath chalane ke liye.
-        // --disable-dev-shm-usage: /dev/shm 64MB tiny hota hai cloud pe — yeh
-        // /tmp use karne bolta hai (warna OOM crash hota hai).
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        // AGGRESSIVE MEMORY-OPTIMIZATION FLAGS — Render free tier (512MB) ke liye zaroori.
+        // Har flag Chromium ke ek feature ko disable karta hai jo hume nahi chahiye
+        // (WhatsApp Web ke liye). Combined saving: ~100-200 MB.
+        //
+        // NOTE: Ye sab safe hain WhatsApp Web ke liye. Sirf `--single-process`
+        // NAHI use kar rahe kyunki wo instability laata hai (crashes kill everything).
+        args: [
+            // Base sandboxing / IPC (Linux root user + cloud shared memory fixes)
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+
+            // GPU acceleration disable — headless mein waise bhi useless, saves RAM
+            '--disable-gpu',
+            '--disable-accelerated-2d-canvas',
+            '--disable-software-rasterizer',
+
+            // Background process kill — WhatsApp Web idle nahi hota, isliye
+            // background rendering aur timer throttling ki zaroorat nahi
+            '--disable-background-networking',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+
+            // Chrome ke saare "extras" nahi chahiye
+            '--disable-extensions',
+            '--disable-default-apps',
+            '--disable-sync',
+            '--disable-translate',
+            '--metrics-recording-only',
+            '--mute-audio',
+            '--hide-scrollbars',
+            '--no-first-run',
+            '--no-zygote',              // one less process
+            '--disable-features=AudioServiceOutOfProcess,IsolateOrigins,site-per-process',
+        ]
     }
     });
 }
@@ -1238,4 +1269,21 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));  // cloud host stop
 // bot ko crash kar dete the silently. Yahan log karte hain — bot zinda rehta hai.
 process.on('unhandledRejection', (err) => {
     console.error('[UNHANDLED REJECTION]', err);
+});
+
+// Uncaught exceptions — usually EventEmitter 'error' events jo listen nahi hue.
+// Node default behavior: process crash. Hum specific known-harmless errors ko
+// swallow karte hain aur baaki ke liye clean exit (Render/PM2 restart karega).
+process.on('uncaughtException', (err) => {
+    // wwebjs-mongo ka periodic backup task kabhi-kabhi zip creation ke bich
+    // race condition mein fail hota hai. Non-fatal — bot chal raha hai, sirf
+    // is cycle ka MongoDB backup skip ho jata hai. Agla cycle 60 sec baad
+    // dobara try karega.
+    if (err?.code === 'ENOENT' && String(err?.path || '').includes('RemoteAuth-')) {
+        console.log('[Auth] Session backup skipped (transient):', err.message);
+        return;
+    }
+    // Real uncaught exception — log + exit for restart
+    console.error('[UNCAUGHT EXCEPTION]', err);
+    process.exit(1);
 });
