@@ -1171,6 +1171,14 @@ async function _handleMessageInner(msg) {
         return;
     }
 
+    // GUARD: state AWAITING_CONFIRM hai par pendingData khaali? (inconsistent state,
+    // ya YES do baar aa gaya). Crash se bachne ke liye reset karke dobara maango.
+    if (!session.pendingData) {
+        session.state = 'IDLE';
+        await botReply(msg, '⚠️ Session reset ho gaya. Naya *WORK: ...* bhejo.');
+        return;
+    }
+
     if (isCancel) {
         session.state = 'IDLE';
         session.pendingData = null;
@@ -1186,11 +1194,19 @@ async function _handleMessageInner(msg) {
     }
 
     if (isYes) {
+        // pendingData ko local mein copy karo — aage koi reconnect/dedup session
+        // clear kar de to bhi ye values safe rahengi (crash nahi hoga).
+        const pd = { ...session.pendingData };
+
+        // State turant reset karo taaki double-YES ka doosra event kuch na kare
+        session.state = 'IDLE';
+        session.pendingData = null;
+
         const fullUrl = buildPrefilledUrl(
             profile,
-            session.pendingData.natureOfWork,
-            session.pendingData.loginTime,
-            session.pendingData.logoutTime
+            pd.natureOfWork,
+            pd.loginTime,
+            pd.logoutTime
         );
 
         // Short link banao — full Google Forms URL ki jagah chhota apna domain link.
@@ -1215,8 +1231,8 @@ async function _handleMessageInner(msg) {
             console.error('[Stats] record fail:', e.message);
         }
 
-        const loginDisp  = to12Hour(session.pendingData.loginTime);
-        const logoutDisp = to12Hour(session.pendingData.logoutTime);
+        const loginDisp  = to12Hour(pd.loginTime);
+        const logoutDisp = to12Hour(pd.logoutTime);
         const countLine = stats.todayCount > 1
             ? `\n_(Link #${stats.todayCount} for today)_`
             : '';
@@ -1235,16 +1251,18 @@ async function _handleMessageInner(msg) {
             `👉 ${displayUrl}\n\n` +
             expiryLine +
             `📌 *Before submitting, check the TIME fields:*\n` +
-            `🕐 Login: *${session.pendingData.loginTime}* (${loginDisp})\n` +
-            `🕕 Logout: *${session.pendingData.logoutTime}* (${logoutDisp})\n` +
+            `🕐 Login: *${pd.loginTime}* (${loginDisp})\n` +
+            `🕕 Logout: *${pd.logoutTime}* (${logoutDisp})\n` +
             `_(Google Forms doesn't auto-fill time fields — if empty, just type these values manually.)_\n\n` +
             `⚠️ Don't forget to tap *Submit* — that's what marks your attendance!`
         );
 
-        // Mark by internship_id (stable across @c.us and @lid identities)
-        markSubmittedToday(profile.internship_id);
-        session.state = 'IDLE';
-        session.pendingData = null;
+        // Mark by internship_id — file write fail ho to bhi link ja chuka hai
+        try {
+            markSubmittedToday(profile.internship_id);
+        } catch (e) {
+            console.error('[Reminder] markSubmittedToday fail:', e.message);
+        }
         return;
     }
 }
