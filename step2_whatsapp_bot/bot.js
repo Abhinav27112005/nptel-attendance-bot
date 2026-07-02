@@ -432,7 +432,12 @@ let client = null;
 function createClient(authStrategy) {
     return new Client({
     authStrategy,
+    // protocolTimeout: Chromium ke saath baat karne ka max wait. Default 180 sec.
+    // Weak phone pe Chromium slow ho jata hai (message bhejte waqt), 180s mein
+    // jawab na aaye to "Runtime.callFunctionOn timed out" crash. 5 min de dete hain
+    // taaki slow-but-working operations crash na hon.
     puppeteer: {
+        protocolTimeout: 300000,   // 5 minutes
         headless: true,
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
         // AGGRESSIVE MEMORY-OPTIMIZATION FLAGS — Render free tier (512MB) ke liye zaroori.
@@ -927,15 +932,24 @@ async function handleMessage(msg) {
     try {
         await _handleMessageInner(msg);
     } catch (err) {
-        console.error('[handleMessage CRASH]', err);
-        // Best-effort: user ko bata do kuch toot gaya (warna kuchh nahi dikhega)
+        console.error('[handleMessage CRASH]', err.message || err);
+        // ProtocolError/timeout = Chromium slow tha (phone weak). Us waqt aur ek
+        // reply bhejna page pe aur bojh daalta hai → skip. Sirf log karo.
+        const isTimeout = /ProtocolError|timed out|Target closed|Session closed/i.test(String(err?.message || err));
+        if (isTimeout) return;
+        // Baaki genuine errors pe hi user ko batao
         try {
-            await msg.reply('⚠️ Bot mein internal error. Logs check karo.');
+            await msg.reply('⚠️ Kuch gadbad hui, dobara try karo.');
         } catch { /* ignore reply failure */ }
     }
 }
 
 async function _handleMessageInner(msg) {
+    // GROUP MESSAGES IGNORE — bot sirf 1-on-1 attendance ke liye hai. Group
+    // spam (jaise "Ab roz hogi baarish") har message pe DB lookup + processing
+    // karke phone pe bekar bojh daalta tha. Turant nikal jao.
+    if (msg.from?.endsWith('@g.us')) return;
+
     // Pehla check: yeh message pehle process ho chuka? (dual-event dedup)
     if (alreadyProcessed(msg)) return;
 
