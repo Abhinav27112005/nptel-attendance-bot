@@ -238,6 +238,18 @@ def register():
     })
 
 
+@app.route('/docs')
+def docs():
+    """Full project documentation — architecture, code, setup, errors, deployment."""
+    return render_template('docs.html')
+
+
+@app.route('/commands')
+def commands():
+    """Interactive command cheat-sheet (WhatsApp bot + Termux + deployment)."""
+    return render_template('commands.html')
+
+
 @app.route('/r/<short_id>')
 def short_redirect(short_id):
     """

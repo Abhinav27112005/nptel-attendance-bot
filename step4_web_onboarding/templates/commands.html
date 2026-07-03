@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NPTEL Attendance Bot — Command Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e1a; --bg-elev:#11162a; --card:#161c2e; --card-hover:#1c2238;
+    --border:rgba(148,163,184,.10); --border-strong:rgba(148,163,184,.20);
+    --text:#f1f5f9; --dim:#94a3b8; --muted:#64748b;
+    --accent:#3b82f6; --accent-hover:#2563eb; --accent-glow:rgba(59,130,246,.15);
+    --green:#10b981; --amber:#f59e0b; --pink:#ec4899; --purple:#8b5cf6; --cyan:#06b6d4;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;
+    background-image:
+      radial-gradient(900px circle at 15% -10%,rgba(59,130,246,.10),transparent 50%),
+      radial-gradient(700px circle at 95% 5%,rgba(139,92,246,.06),transparent 50%);
+    background-attachment:fixed;
+  }
+
+  /* Header */
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(12px);
+    background:rgba(10,14,26,.82);border-bottom:1px solid var(--border);}
+  .head-inner{max-width:1000px;margin:0 auto;padding:18px 20px;}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .brand-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),#1d4ed8);
+    border-radius:10px;display:grid;place-items:center;font-weight:700;color:#fff;
+    box-shadow:0 4px 14px var(--accent-glow);font-size:18px;}
+  .brand h1{font-size:17px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .brand p{font-size:11px;color:var(--dim);margin:0;text-transform:uppercase;letter-spacing:.06em;font-weight:500;}
+
+  /* Search */
+  .search-wrap{position:relative;}
+  .search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);}
+  #search{width:100%;padding:12px 14px 12px 42px;background:var(--bg-elev);
+    border:1px solid var(--border-strong);border-radius:10px;color:var(--text);
+    font-family:inherit;font-size:14px;transition:all .15s;}
+  #search:focus{outline:none;border-color:rgba(59,130,246,.5);box-shadow:0 0 0 4px var(--accent-glow);}
+  #search::placeholder{color:var(--muted);}
+
+  /* Filter chips */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .chip{background:var(--card);border:1px solid var(--border);color:var(--dim);
+    padding:7px 14px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;
+    transition:all .15s;user-select:none;}
+  .chip:hover{border-color:var(--border-strong);color:var(--text);}
+  .chip.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent);}
+
+  /* Container */
+  .container{max-width:1000px;margin:0 auto;padding:24px 20px 80px;}
+
+  /* Section */
+  .section{margin-bottom:34px;}
+  .section-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .section-dot{width:10px;height:10px;border-radius:3px;}
+  .section-head h2{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .section-head .tag{font-size:11px;color:var(--muted);font-weight:500;margin-left:auto;}
+
+  /* Command card */
+  .cmd{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:14px 16px;margin-bottom:10px;transition:all .18s;
+    display:flex;align-items:flex-start;gap:14px;}
+  .cmd:hover{border-color:var(--border-strong);background:var(--card-hover);}
+  .cmd-body{flex:1;min-width:0;}
+  .cmd-code{display:inline-flex;align-items:center;gap:8px;background:var(--bg-elev);
+    border:1px solid var(--border);border-radius:7px;padding:7px 11px;
+    font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;
+    color:#e2e8f0;margin-bottom:8px;max-width:100%;overflow-x:auto;white-space:nowrap;}
+  .cmd-code .k{color:var(--accent);}
+  .cmd-desc{font-size:13px;color:var(--dim);line-height:1.5;}
+  .cmd-desc b{color:var(--text);font-weight:600;}
+  .cmd-note{font-size:12px;color:var(--muted);margin-top:5px;font-style:italic;}
+
+  /* Copy button */
+  .copy-btn{flex-shrink:0;background:var(--bg-elev);border:1px solid var(--border-strong);
+    color:var(--dim);width:34px;height:34px;border-radius:8px;cursor:pointer;
+    display:grid;place-items:center;transition:all .15s;font-family:inherit;}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);}
+  .copy-btn.copied{border-color:var(--green);color:var(--green);background:rgba(16,185,129,.1);}
+
+  /* Kbd */
+  kbd{background:var(--bg-elev);border:1px solid var(--border-strong);border-bottom-width:2px;
+    border-radius:5px;padding:1px 7px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);}
+
+  .empty{text-align:center;padding:50px 20px;color:var(--muted);display:none;}
+
+  footer{max-width:1000px;margin:0 auto;padding:20px;text-align:center;
+    font-size:12px;color:var(--muted);border-top:1px solid var(--border);}
+  footer a{color:var(--dim);}
+
+  @media(max-width:600px){
+    .cmd-code{font-size:12px;}
+    .head-inner{padding:14px 14px;}
+    .container{padding:18px 14px 60px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="brand">
+      <div class="brand-icon">N</div>
+      <div>
+        <h1>NPTEL Attendance Bot</h1>
+        <p>Command Reference &amp; Cheat Sheet</p>
+      </div>
+    </div>
+    <div class="search-wrap">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" type="text" placeholder="Search commands... (e.g. restart, WORK, logs)" autocomplete="off">
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+</header>
+
+<div class="container" id="content"></div>
+<div class="empty" id="empty">🔍 No commands match your search.</div>
+
+<footer>
+  Made for NPTEL Summer Internship 2026 · Click any <b style="color:var(--dim)">copy</b> icon to copy a command
+</footer>
+
+<script>
+// ============= DATA =============
+const CATEGORIES = [
+  {
+    id:'whatsapp', name:'WhatsApp Bot Commands', color:'#10b981',
+    tag:'send these to the bot on WhatsApp',
+    cmds:[
+      {code:'REGISTER', desc:'Get the registration link (new user), or see your status if already registered.'},
+      {code:'LINK <internship_id>', desc:'Connect your WhatsApp to your registered profile. One-time step after registering on the website.', note:'Example: LINK SUM260130'},
+      {code:'WORK: <what you did today>', desc:'Start marking attendance. Bot shows a summary and asks to confirm.', note:'Example: WORK: Worked on dataset preparation'},
+      {code:'YES', desc:'Confirm — bot sends your pre-filled Google Form link (valid 30 min).'},
+      {code:'CANCEL', desc:'Discard the current attendance draft.'},
+      {code:'LOGIN HH:MM', desc:'Change the login time before confirming.', note:'Example: LOGIN 10:30'},
+      {code:'!status', desc:'Your status — name, ID, how many links generated today, last link time.'},
+      {code:'!help', desc:'Show the full list of bot commands.'},
+    ]
+  },
+  {
+    id:'termux', name:'Termux / Debian Basics', color:'#8b5cf6',
+    tag:'phone terminal',
+    cmds:[
+      {code:'proot-distro login debian', desc:'Enter the Debian environment (where the bot lives). Prompt changes to <b>#</b>.'},
+      {code:'exit', desc:'Leave Debian, go back to Termux. Prompt changes to <b>$</b>.'},
+      {code:'termux-wake-lock', desc:'Stop Android from killing Termux when screen is off. Run in Termux <b>before</b> starting the bot.'},
+      {code:'date', desc:'Check current date/time. Should show <b>IST</b> (India time).'},
+      {code:'pkg install -y tmux', desc:'Install tmux in Termux (keeps the bot alive in background).'},
+    ]
+  },
+  {
+    id:'run', name:'Run &amp; Keep Bot Alive (tmux)', color:'#3b82f6',
+    tag:'start / background the bot',
+    cmds:[
+      {code:'tmux new -s bot', desc:'Create a background session named "bot".'},
+      {code:'bash ~/run-bot.sh', desc:'Start the bot (auto-restarts if it crashes). Run this inside Debian.'},
+      {code:'Ctrl+B  then  D', desc:'Detach — bot keeps running in the background. Press Ctrl+B, release, then press D.', kbd:true},
+      {code:'tmux attach -t bot', desc:'Re-open the running bot to see live logs.'},
+      {code:'tmux ls', desc:'List running tmux sessions.'},
+    ]
+  },
+  {
+    id:'pm2', name:'Bot Control (PM2 — if used)', color:'#06b6d4',
+    tag:'alternative to tmux',
+    cmds:[
+      {code:'pm2 start bot.js --name nptel-bot', desc:'Start the bot under PM2.'},
+      {code:'pm2 status', desc:'See if the bot is online.'},
+      {code:'pm2 logs nptel-bot', desc:'Watch live logs. Press Ctrl+C to stop viewing (bot keeps running).'},
+      {code:'pm2 restart nptel-bot', desc:'Restart the bot (after a code update).'},
+      {code:'pm2 stop nptel-bot', desc:'Stop the bot.'},
+      {code:'pm2 save', desc:'Save the current process list so it survives reboot.'},
+    ]
+  },
+  {
+    id:'update', name:'Update Code', color:'#f59e0b',
+    tag:'pull latest changes',
+    cmds:[
+      {code:'cd ~/nptel-attendance-bot && git pull', desc:'Download the latest code from GitHub.'},
+      {code:'cd step2_whatsapp_bot && npm install --ignore-scripts', desc:'Install new dependencies (only if package.json changed).'},
+      {code:'npm cache clean --force', desc:'Fix corrupted npm downloads (if install errors appear).'},
+      {code:'npm install --ignore-scripts --maxsockets 1', desc:'Slow, reliable install for flaky networks.'},
+    ]
+  },
+  {
+    id:'urls', name:'Websites &amp; URLs', color:'#ec4899',
+    tag:'open in browser',
+    cmds:[
+      {code:'nptel-attendance-bot.onrender.com', desc:'Registration website (upload offer letter to sign up).'},
+      {code:'nptel-attendance-bot.onrender.com/admin', desc:'Admin panel — see all users &amp; activity. Needs admin password.'},
+      {code:'localhost:3000/qr', desc:'QR-scan page for linking WhatsApp (open on the phone / another device).'},
+      {code:'localhost:3000/health', desc:'Bot health JSON — is WhatsApp connected, uptime, memory.'},
+      {code:'healthchecks.io', desc:'Down-alert dashboard — emails you if the bot stops pinging.'},
+    ]
+  },
+  {
+    id:'admin', name:'Data &amp; Maintenance', color:'#10b981',
+    tag:'run on laptop (Python)',
+    cmds:[
+      {code:'python cleanup.py --yes', desc:'Wipe test data (users, links, stats). Keeps PDFs for the admin panel.'},
+      {code:'python cleanup.py --full --yes', desc:'Wipe <b>everything</b> including Cloudinary PDFs. Use for a total reset.'},
+    ]
+  },
+  {
+    id:'trouble', name:'Troubleshooting', color:'#ef4444',
+    tag:'common fixes',
+    cmds:[
+      {code:'date', desc:'Wrong time? Fix timezone → next commands.'},
+      {code:'ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime', desc:'Set India timezone (run in Debian).'},
+      {code:'echo "Asia/Kolkata" > /etc/timezone', desc:'Save timezone name.'},
+      {code:'rm -rf ~/.npm/_cacache', desc:'Fully reset npm cache when install keeps failing.'},
+      {code:'free -h', desc:'Check phone RAM usage (Debian). Bot needs ~400-500 MB.'},
+      {code:'df -h', desc:'Check free disk space.'},
+    ]
+  },
+];
+
+// ============= RENDER =============
+const content = document.getElementById('content');
+const chipsEl = document.getElementById('chips');
+const searchEl = document.getElementById('search');
+const emptyEl = document.getElementById('empty');
+let activeCat = 'all';
+
+// Chips
+const allChip = chip('All','all',true);
+chipsEl.appendChild(allChip);
+CATEGORIES.forEach(c=>chipsEl.appendChild(chip(c.name.replace(/&amp;/g,'&'),c.id)));
+function chip(label,id,active){
+  const el=document.createElement('div');
+  el.className='chip'+(active?' active':'');
+  el.textContent=label; el.dataset.id=id;
+  el.onclick=()=>{activeCat=id;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x.dataset.id===id));render();};
+  return el;
+}
+
+function highlight(text,q){
+  if(!q) return text;
+  const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');
+  return text.replace(re,'<mark style="background:rgba(59,130,246,.35);color:#fff;border-radius:3px;padding:0 2px;">$1</mark>');
+}
+
+function render(){
+  const q=searchEl.value.trim().toLowerCase();
+  content.innerHTML='';
+  let shown=0;
+
+  CATEGORIES.forEach(cat=>{
+    if(activeCat!=='all' && activeCat!==cat.id) return;
+    const matches=cat.cmds.filter(cmd=>
+      !q || cmd.code.toLowerCase().includes(q) || (cmd.desc||'').toLowerCase().includes(q) || (cmd.note||'').toLowerCase().includes(q)
+    );
+    if(matches.length===0) return;
+    shown+=matches.length;
+
+    const sec=document.createElement('div'); sec.className='section';
+    sec.innerHTML=`<div class="section-head">
+        <span class="section-dot" style="background:${cat.color}"></span>
+        <h2>${cat.name}</h2><span class="tag">${cat.tag}</span>
+      </div>`;
+
+    matches.forEach(cmd=>{
+      const card=document.createElement('div'); card.className='cmd';
+      const codeHtml = cmd.kbd
+        ? cmd.code.split('  ').map(p=>p.trim()==='then'?'<span style="color:var(--muted)">then</span>':`<kbd>${p.trim()}</kbd>`).join(' ')
+        : highlight(escapeHtml(cmd.code),q);
+      card.innerHTML=`
+        <div class="cmd-body">
+          <div class="cmd-code">${cmd.kbd?codeHtml:'<span>'+codeHtml+'</span>'}</div>
+          <div class="cmd-desc">${highlight(cmd.desc,q)}</div>
+          ${cmd.note?`<div class="cmd-note">${highlight(escapeHtml(cmd.note),q)}</div>`:''}
+        </div>
+        ${cmd.kbd?'':`<button class="copy-btn" title="Copy" data-cmd="${escapeAttr(cmd.code)}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>`}`;
+      sec.appendChild(card);
+    });
+    content.appendChild(sec);
+  });
+
+  emptyEl.style.display = shown===0 ? 'block':'none';
+
+  // wire copy buttons
+  content.querySelectorAll('.copy-btn').forEach(btn=>{
+    btn.onclick=async()=>{
+      try{ await navigator.clipboard.writeText(btn.dataset.cmd); }
+      catch{ const t=document.createElement('textarea');t.value=btn.dataset.cmd;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove(); }
+      btn.classList.add('copied');
+      btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>';
+      setTimeout(()=>{btn.classList.remove('copied');
+        btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+      },1400);
+    };
+  });
+}
+
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escapeAttr(s){return escapeHtml(s).replace(/"/g,'&quot;');}
+
+searchEl.addEventListener('input',render);
+render();
+</script>
+</body>
+</html>
