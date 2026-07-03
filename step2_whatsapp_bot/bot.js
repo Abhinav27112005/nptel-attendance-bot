@@ -1219,75 +1219,54 @@ async function _handleMessageInner(msg) {
     }
 
     if (isYes) {
-        // pendingData ko local mein copy karo — aage koi reconnect/dedup session
-        // clear kar de to bhi ye values safe rahengi (crash nahi hoga).
+        // pendingData local mein copy (double-YES/reconnect se safe)
         const pd = { ...session.pendingData };
-
-        // State turant reset karo taaki double-YES ka doosra event kuch na kare
         session.state = 'IDLE';
         session.pendingData = null;
 
-        const fullUrl = buildPrefilledUrl(
-            profile,
-            pd.natureOfWork,
-            pd.loginTime,
-            pd.logoutTime
-        );
+        const loginDisp  = to12Hour(pd.loginTime);
+        const logoutDisp = to12Hour(pd.logoutTime);
 
-        // Short link banao — par 6 sec se zyada MongoDB pe atke to full URL bhej do.
-        // withTimeout() promise ko max time deta hai; slow ho to fallback.
+        // Pre-filled link banao. Bot form KHUD submit NAHI karta — user apne
+        // Chrome se (registered Gmail se) khud submit karta hai, tabhi attendance
+        // NPTEL ke records mein count hoti hai. Ye jaan-bujhke manual rakha hai.
+        const fullUrl = buildPrefilledUrl(profile, pd.natureOfWork, pd.loginTime, pd.logoutTime);
+
+        // Short link — 6 sec se zyada MongoDB pe atke to full URL bhej do.
         let displayUrl = fullUrl;
         let expiresAt = null;
         try {
             const r = await withTimeout(db.saveShortLink(fullUrl, profile.internship_id), 6000);
-            if (r?.shortId) {
-                displayUrl = `${BOT_CONFIG.SHORT_BASE}/r/${r.shortId}`;
-                expiresAt = r.expiresAt;
-            }
-        } catch (e) {
-            console.error('[ShortLink] skip (slow/fail):', e.message);
-        }
+            if (r?.shortId) { displayUrl = `${BOT_CONFIG.SHORT_BASE}/r/${r.shortId}`; expiresAt = r.expiresAt; }
+        } catch (e) { console.error('[ShortLink] skip:', e.message); }
 
-        // Counter — non-critical. 4 sec se zyada le to chhod do (link zyada important hai).
         let stats = { todayCount: 1 };
-        try {
-            stats = await withTimeout(db.recordLinkGenerated(profile.internship_id), 4000);
-        } catch (e) {
-            console.error('[Stats] skip (slow/fail):', e.message);
-        }
+        try { stats = await withTimeout(db.recordLinkGenerated(profile.internship_id), 4000); }
+        catch (e) { console.error('[Stats] skip:', e.message); }
 
-        const loginDisp  = to12Hour(pd.loginTime);
-        const logoutDisp = to12Hour(pd.logoutTime);
-        const countLine = stats.todayCount > 1
-            ? `\n_(Link #${stats.todayCount} for today)_`
-            : '';
+        const countLine = stats.todayCount > 1 ? `\n_(Link #${stats.todayCount} for today)_` : '';
 
-        // Expiry line — "valid till HH:MM" so user knows the deadline.
         let expiryLine = '';
         if (expiresAt) {
             const e = new Date(expiresAt);
-            const hh = String(e.getHours()).padStart(2, '0');
-            const mm = String(e.getMinutes()).padStart(2, '0');
-            expiryLine = `⏳ *Link expires at ${hh}:${mm}* (30 min) — for safety.\n\n`;
+            expiryLine = `⏳ *Link expires at ${String(e.getHours()).padStart(2,'0')}:${String(e.getMinutes()).padStart(2,'0')}* (30 min).\n\n`;
         }
 
         await botReply(msg,
             `✅ *Your pre-filled form link is ready!*${countLine}\n\n` +
             `👉 ${displayUrl}\n\n` +
             expiryLine +
-            `📌 *Before submitting, check the TIME fields:*\n` +
+            `📌 *Ise apne CHROME mein kholo* (jisme tumhara NPTEL-registered Gmail logged-in ho) — ` +
+            `tabhi attendance count hoti hai.\n\n` +
+            `🔎 *Submit se pehle verify karo:*\n` +
             `🕐 Login: *${pd.loginTime}* (${loginDisp})\n` +
             `🕕 Logout: *${pd.logoutTime}* (${logoutDisp})\n` +
-            `_(Google Forms doesn't auto-fill time fields — if empty, just type these values manually.)_\n\n` +
-            `⚠️ Don't forget to tap *Submit* — that's what marks your attendance!`
+            `📝 Work: ${pd.natureOfWork}\n` +
+            `_(Time fields khaali hon to khud bhar lena.)_\n\n` +
+            `⚠️ *Submit tum khud dabao* — bot submit nahi karta.`
         );
 
-        // Mark by internship_id — file write fail ho to bhi link ja chuka hai
-        try {
-            markSubmittedToday(profile.internship_id);
-        } catch (e) {
-            console.error('[Reminder] markSubmittedToday fail:', e.message);
-        }
+        try { markSubmittedToday(profile.internship_id); } catch (e) { console.error('[Reminder] mark fail:', e.message); }
         return;
     }
 }

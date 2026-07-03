@@ -20,7 +20,13 @@
 //   - 10 users ke liye natural — har koi apne phone pe
 // =============================================================================
 
-// Form ka base URL (viewform tak)
+// Form ka base URL (viewform tak) — pre-filled LINK ke liye.
+//
+// IMPORTANT — BOT FORM KHUD SUBMIT NAHI KARTA (jaan-bujhke).
+//   NPTEL ki attendance TABHI count hoti hai jab user apne registered Gmail se
+//   submit kare. Server se anonymous submit karne pe attendance record nahi
+//   hoti (stipend kat sakta hai). Isliye bot sirf pre-filled LINK deta hai —
+//   user apne Chrome (registered Gmail) mein khol ke KHUD submit karta hai.
 const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSc3hc_MvzVLMGxsC9Dwb8vH_W793qeBaX8M18jcC8Oqu3q8gw/viewform";
 
 // -----------------------------------------------------------------------------
@@ -90,48 +96,48 @@ function splitTime(timeStr) {
 //   loginTime     → "HH:MM"
 //   logoutTime    → "HH:MM"
 // Returns: poora pre-filled URL (string)
-function buildPrefilledUrl(profile, natureOfWork, loginTime, logoutTime) {
-    // URLSearchParams ek built-in tool hai jo query string safely banata hai.
-    // Ye spaces, special characters (jaise "In-person", "Prof.") ko khud encode kar deta hai.
-    // WHY important? Bina encoding ke "12 weeks" ka space URL todd dega.
+// -----------------------------------------------------------------------------
+// CORE: saare form fields ko URLSearchParams mein bharo (link + submit dono use karte)
+// -----------------------------------------------------------------------------
+function buildParams(profile, natureOfWork, loginTime, logoutTime) {
     const params = new URLSearchParams();
 
-    // usp=pp_url — Google ko batata hai "ye ek pre-filled link hai"
-    params.append("usp", "pp_url");
-
-    // --- Simple text/choice fields ---
     params.append(ENTRY.internshipId, profile.internship_id);
     params.append(ENTRY.name,         profile.name);
     params.append(ENTRY.mobile,       profile.mobile);
     params.append(ENTRY.institute,    profile.institute);
     params.append(ENTRY.professor,    profile.professor);
-    params.append(ENTRY.mode,         profile.mode);       // dropdown: "In-person"
-    params.append(ENTRY.duration,     profile.duration);   // radio: "12 weeks"
+    params.append(ENTRY.mode,         profile.mode);
+    params.append(ENTRY.duration,     profile.duration);
     params.append(ENTRY.natureOfWork, natureOfWork);
 
-    // --- Start date (year/month/day alag) ---
     const sd = splitDate(profile.start_date);
     params.append(`${ENTRY.startDate}_year`,  sd.year);
     params.append(`${ENTRY.startDate}_month`, sd.month);
     params.append(`${ENTRY.startDate}_day`,   sd.day);
 
-    // --- End date ---
     const ed = splitDate(profile.end_date);
     params.append(`${ENTRY.endDate}_year`,  ed.year);
     params.append(`${ENTRY.endDate}_month`, ed.month);
     params.append(`${ENTRY.endDate}_day`,   ed.day);
 
-    // --- Login time (hour/minute alag) ---
     const lt = splitTime(loginTime);
     params.append(`${ENTRY.loginTime}_hour`,   lt.hour);
     params.append(`${ENTRY.loginTime}_minute`, lt.minute);
 
-    // --- Logout time ---
     const ot = splitTime(logoutTime);
     params.append(`${ENTRY.logoutTime}_hour`,   ot.hour);
     params.append(`${ENTRY.logoutTime}_minute`, ot.minute);
 
-    // Base URL + "?" + saare parameters jodo
+    return params;
+}
+
+// -----------------------------------------------------------------------------
+// Pre-filled LINK banao (backup ke liye — agar direct submit fail ho)
+// -----------------------------------------------------------------------------
+function buildPrefilledUrl(profile, natureOfWork, loginTime, logoutTime) {
+    const params = buildParams(profile, natureOfWork, loginTime, logoutTime);
+    params.append("usp", "pp_url");
     return `${FORM_BASE}?${params.toString()}`;
 }
 
