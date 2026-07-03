@@ -37,7 +37,13 @@ let _db = null;
 async function connect() {
     if (usingCloud() && !_db) {
         const { MongoClient } = require('mongodb');
-        const client = new MongoClient(MONGODB_URI);
+        // FAST-FAIL timeouts — weak phone/network pe operations hang na hon.
+        // Bina inke koi query minute-bhar atak sakti thi (bot "processing" pe stuck).
+        const client = new MongoClient(MONGODB_URI, {
+            serverSelectionTimeoutMS: 8000,   // server dhoondhne ka max 8s
+            connectTimeoutMS: 8000,           // connect ka max 8s
+            socketTimeoutMS: 20000,           // ek operation ka max 20s
+        });
         await client.connect();           // cloud se judo
         _db = client.db(DB_NAME);
         console.log('[DB] ✅ MongoDB se connected');

@@ -908,6 +908,17 @@ async function botReply(msg, text) {
     return sent;
 }
 
+/**
+ * Promise ko ek max time deta hai. Us time mein complete na ho to reject.
+ * Weak phone pe slow DB/network ki wajah se bot ko "processing" pe atakne se bachata hai.
+ */
+function withTimeout(promise, ms) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`timeout ${ms}ms`)), ms))
+    ]);
+}
+
 // DEDUPE: WhatsApp Web @lid contacts ke liye DONO 'message' aur 'message_create'
 // events fire hote hain (self-messages mein sirf ek). Same message ki ID dobara
 // aaye to skip karo, warna har reply 2 baar bheji jaayegi.
@@ -1223,26 +1234,26 @@ async function _handleMessageInner(msg) {
             pd.logoutTime
         );
 
-        // Short link banao — full Google Forms URL ki jagah chhota apna domain link.
-        // Agar cloud mode mein nahi (local dev), fallback to full URL.
+        // Short link banao — par 6 sec se zyada MongoDB pe atke to full URL bhej do.
+        // withTimeout() promise ko max time deta hai; slow ho to fallback.
         let displayUrl = fullUrl;
         let expiresAt = null;
         try {
-            const r = await db.saveShortLink(fullUrl, profile.internship_id);
+            const r = await withTimeout(db.saveShortLink(fullUrl, profile.internship_id), 6000);
             if (r?.shortId) {
                 displayUrl = `${BOT_CONFIG.SHORT_BASE}/r/${r.shortId}`;
                 expiresAt = r.expiresAt;
             }
         } catch (e) {
-            console.error('[ShortLink] save fail:', e.message);
+            console.error('[ShortLink] skip (slow/fail):', e.message);
         }
 
-        // Aaj ka counter badhao (status mein dikhane ke liye)
+        // Counter — non-critical. 4 sec se zyada le to chhod do (link zyada important hai).
         let stats = { todayCount: 1 };
         try {
-            stats = await db.recordLinkGenerated(profile.internship_id);
+            stats = await withTimeout(db.recordLinkGenerated(profile.internship_id), 4000);
         } catch (e) {
-            console.error('[Stats] record fail:', e.message);
+            console.error('[Stats] skip (slow/fail):', e.message);
         }
 
         const loginDisp  = to12Hour(pd.loginTime);
