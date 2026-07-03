@@ -24,10 +24,7 @@
     background-attachment:fixed;}
   a{color:var(--accent);text-decoration:none}
   a:hover{text-decoration:underline}
-
-  /* Layout */
-  .wrap{display:flex;max-width:1240px;margin:0 auto;}
-  /* Sidebar */
+  .wrap{display:flex;max-width:1260px;margin:0 auto;}
   aside{width:250px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;
     padding:24px 14px;border-right:1px solid var(--border);}
   .logo{display:flex;align-items:center;gap:10px;margin-bottom:22px;padding:0 8px;}
@@ -41,39 +38,34 @@
   nav a.active{background:var(--glow);color:var(--accent);}
   nav .grp{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
     font-weight:700;padding:14px 12px 6px;}
-
   main{flex:1;min-width:0;padding:40px 44px 100px;}
-
   h1{font-size:34px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px;}
   .lead{font-size:17px;color:var(--dim);margin:0 0 8px;}
-  h2{font-size:23px;font-weight:700;letter-spacing:-.01em;margin:52px 0 14px;padding-top:14px;
+  h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:56px 0 14px;padding-top:16px;
     border-top:1px solid var(--border);}
-  h3{font-size:17px;font-weight:600;margin:26px 0 8px;color:var(--text);}
+  h3{font-size:17px;font-weight:600;margin:28px 0 8px;color:var(--text);}
+  h4{font-size:14px;font-weight:600;margin:18px 0 6px;color:var(--accent);}
   p{margin:10px 0;color:#cbd5e1;}
   .muted{color:var(--dim);font-size:14px;}
   ul,ol{color:#cbd5e1;padding-left:22px;}
-  li{margin:5px 0;}
+  li{margin:6px 0;}
   b,strong{color:var(--text);}
   code{font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--bg-elev);
     border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:#e2e8f0;}
   pre{background:#0d1220;border:1px solid var(--border-s);border-radius:10px;padding:14px 16px;
     overflow-x:auto;margin:12px 0;position:relative;}
-  pre code{background:none;border:none;padding:0;font-size:12.5px;line-height:1.7;color:#e2e8f0;white-space:pre;}
+  pre code{background:none;border:none;padding:0;font-size:12.5px;line-height:1.75;color:#e2e8f0;white-space:pre;}
+  pre .c{color:var(--muted);}
   .copy{position:absolute;top:8px;right:8px;background:var(--card);border:1px solid var(--border-s);
     color:var(--dim);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:inherit;}
   .copy:hover{color:var(--accent);border-color:var(--accent);}
   .copy.ok{color:var(--green);border-color:var(--green);}
-
-  /* callouts */
-  .box{border-radius:10px;padding:14px 16px;margin:16px 0;border:1px solid var(--border-s);
-    font-size:14px;display:flex;gap:12px;}
+  .box{border-radius:10px;padding:14px 16px;margin:16px 0;border:1px solid var(--border-s);font-size:14px;display:flex;gap:12px;}
   .box .ic{flex-shrink:0;font-size:18px;}
   .box.tip{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.25);}
   .box.warn{background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.25);}
   .box.info{background:rgba(59,130,246,.07);border-color:rgba(59,130,246,.25);}
   .box.rule{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.22);}
-
-  /* accordion */
   details{background:var(--card);border:1px solid var(--border);border-radius:11px;margin:10px 0;overflow:hidden;}
   details[open]{border-color:var(--border-s);}
   summary{padding:14px 16px;cursor:pointer;font-weight:600;font-size:14.5px;list-style:none;
@@ -82,52 +74,50 @@
   summary::-webkit-details-marker{display:none}
   summary .arrow{margin-left:auto;transition:transform .2s;color:var(--muted);}
   details[open] summary .arrow{transform:rotate(90deg);}
-  .acc-body{padding:2px 16px 16px;border-top:1px solid var(--border);}
+  .acc-body{padding:6px 18px 18px;border-top:1px solid var(--border);}
   .badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
   .b-err{background:rgba(239,68,68,.15);color:#fca5a5;}
-  .b-fix{background:rgba(16,185,129,.15);color:#6ee7b7;}
   .b-plat{background:rgba(139,92,246,.15);color:#c4b5fd;}
-
-  /* problem card fields */
-  .pf{margin:10px 0;}
-  .pf .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;margin-bottom:3px;}
+  .b-free{background:rgba(16,185,129,.15);color:#6ee7b7;}
+  .b-paid{background:rgba(245,158,11,.15);color:#fcd34d;}
+  .pf{margin:10px 0;} .pf .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;margin-bottom:3px;}
   .pf .val{font-size:14px;color:#cbd5e1;}
-
-  /* stack diagram */
+  /* table */
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--bg-elev);}
+  td .pro{color:var(--green);} td .con{color:#fca5a5;}
+  tr.chosen td{background:rgba(16,185,129,.05);}
+  .pick{display:inline-block;font-size:10px;font-weight:700;color:var(--green);border:1px solid rgba(16,185,129,.4);border-radius:5px;padding:1px 6px;margin-left:6px;}
+  /* diagram */
+  .diagram{background:#0d1220;border:1px solid var(--border-s);border-radius:14px;padding:20px;margin:18px 0;}
+  .diagram svg{width:100%;height:auto;display:block;}
+  .dcap{text-align:center;font-size:12px;color:var(--muted);margin-top:10px;}
   .stack{display:flex;flex-direction:column;gap:8px;margin:16px 0;}
-  .layer{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;
-    display:flex;align-items:center;gap:12px;}
+  .layer{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;}
   .layer .n{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0;color:#fff;}
-  .layer b{font-size:14px;}
   .layer .d{font-size:12.5px;color:var(--dim);margin-left:auto;text-align:right;}
-
-  .toc-mobile{display:none;}
-  @media(max-width:900px){
-    aside{display:none;}
-    main{padding:24px 18px 80px;}
-    h1{font-size:27px;}
-    .toc-mobile{display:block;margin:16px 0;}
-  }
+  @media(max-width:900px){aside{display:none;}main{padding:24px 18px 80px;}h1{font-size:27px;}table{font-size:12.5px;}th,td{padding:8px;}}
 </style>
 </head>
 <body>
 <div class="wrap">
-
 <aside>
-  <div class="logo">
-    <div class="logo-i">N</div>
-    <div><b>NPTEL Bot</b><span>Documentation</span></div>
-  </div>
+  <div class="logo"><div class="logo-i">N</div><div><b>NPTEL Bot</b><span>Documentation</span></div></div>
   <nav id="nav">
-    <div class="grp">Understand</div>
+    <div class="grp">Start here</div>
     <a href="#intro">Overview</a>
-    <a href="#how">How it works</a>
-    <a href="#stack">Tech stack</a>
+    <a href="#concepts">Key concepts</a>
+    <div class="grp">Design</div>
+    <a href="#arch">Architecture</a>
+    <a href="#flow">How attendance works</a>
+    <a href="#puppeteer">What is Puppeteer?</a>
+    <a href="#alt">Alternatives (research)</a>
     <a href="#code">Code explained</a>
     <div class="grp">Operate</div>
     <a href="#termux">Termux setup</a>
     <a href="#rules">Hosting rules</a>
-    <a href="#deploy">Deployment options</a>
+    <a href="#deploy">Deployment (full steps)</a>
     <div class="grp">Reference</div>
     <a href="#problems">Problems &amp; fixes</a>
     <a href="#future">Future scope</a>
@@ -137,315 +127,460 @@
 
 <main>
   <h1>NPTEL Attendance Bot</h1>
-  <p class="lead">A WhatsApp bot that fills your daily NPTEL internship attendance form in seconds.</p>
-  <p class="muted">Simple docs — samajhne ke liye, koi bhaari technical bhasha nahi. Har cheez seedhi tarah.</p>
+  <p class="lead">A WhatsApp bot that fills your daily NPTEL internship attendance in seconds.</p>
+  <p class="muted">Ye docs bilkul simple bhasa mein hai — maano tumhe kuch nahi aata. Har cheez seedhe samjhayi gayi hai, diagrams ke saath.</p>
 
-  <!-- ================= OVERVIEW ================= -->
+  <!-- OVERVIEW -->
   <h2 id="intro">📌 Overview</h2>
-  <p><b>Problem:</b> NPTEL Summer Internship mein roz ek Google Form bharni padti hai — 12 fields, jinme sirf "aaj kya kaam kiya" aur time badalta hai, baaki sab same. Boring, repetitive.</p>
-  <p><b>Solution:</b> Ek WhatsApp bot ko bhejo <code>WORK: aaj jo kaam kiya</code> → woh ek <b>bhara-bharaya form link</b> wapas bhejta hai. Tum tap karke Submit dabao — ho gaya.</p>
-  <div class="box tip"><span class="ic">✅</span><div><b>Result:</b> 2 minute ka manual kaam → 10 second ka WhatsApp message. 10 doston ke liye ek saath kaam karta hai.</div></div>
+  <p><b>Problem:</b> NPTEL internship mein roz ek Google Form bharni padti hai — 12 fields, jinme sirf "aaj kya kaam kiya" aur time badalta hai, baaki sab same rehta hai. Boring aur repetitive.</p>
+  <p><b>Solution:</b> WhatsApp bot ko bhejo <code>WORK: aaj jo kaam kiya</code> → woh ek <b>bhara-bharaya form link</b> wapas bhejta hai. Tap karke Submit dabao — done.</p>
+  <div class="box tip"><span class="ic">✅</span><div><b>2 minute ka manual kaam → 10 second ka WhatsApp message.</b> 10 doston ke liye ek saath.</div></div>
 
-  <!-- ================= HOW IT WORKS ================= -->
-  <h2 id="how">⚙️ How it works</h2>
-  <p>3 alag hisse (components), 3 alag jagah host:</p>
+  <!-- KEY CONCEPTS -->
+  <h2 id="concepts">🧠 Key concepts — pehle ye samjho</h2>
+  <p>Project samajhne se pehle kuch buniyaadi cheezein. Har ek ek line mein:</p>
+  <details open><summary>Node.js <span class="arrow">›</span></summary><div class="acc-body">
+    <p>JavaScript ko <b>browser ke bahar</b> chalane wala engine. Normally JS website mein chalta hai; Node.js se woh ek normal program ki tarah computer/phone/server pe chalta hai. Humara bot Node.js program hai.</p></div></details>
+  <details><summary>WhatsApp Web <span class="arrow">›</span></summary><div class="acc-body">
+    <p>WhatsApp ka website version (<code>web.whatsapp.com</code>). Phone se QR scan karke browser mein WhatsApp use karte ho. Humara bot isi WhatsApp Web ko automate karta hai.</p></div></details>
+  <details><summary>Headless browser <span class="arrow">›</span></summary><div class="acc-body">
+    <p>Ek browser jo <b>bina window dikhaye</b> (invisible) chalta hai. Screen pe kuch nahi dikhta, par andar-andar sab kaam hota hai. Server pe monitor nahi hota, isliye headless zaroori hai.</p></div></details>
+  <details><summary>API <span class="arrow">›</span></summary><div class="acc-body">
+    <p>Do programs ke beech baat karne ka tareeka. Jaise restaurant mein waiter (API) tumhare aur kitchen ke beech order pahunchata hai. Cloudinary API, MongoDB — sab APIs se baat karte hain.</p></div></details>
+  <details><summary>Database (MongoDB) <span class="arrow">›</span></summary><div class="acc-body">
+    <p>Data ko permanently store karne ki jagah. MongoDB "document" database hai — data JSON jaisा dikhta hai (naam, ID, mobile...). Excel sheet ka smart version samjho.</p></div></details>
+  <details><summary>Environment variable (.env) <span class="arrow">›</span></summary><div class="acc-body">
+    <p>Secret settings (password, API keys) jo code mein nahi likhte. Ek alag <code>.env</code> file mein rakhte hain jo GitHub pe nahi jaati. Code un secrets ko <code>process.env</code> se padhta hai.</p></div></details>
+  <details><summary>Cron job <span class="arrow">›</span></summary><div class="acc-body">
+    <p>"Is time pe ye chalao" wala alarm clock, code ke liye. Reminder system cron use karta hai — 5PM-11PM har 30 min.</p></div></details>
+  <details><summary>Regex <span class="arrow">›</span></summary><div class="acc-body">
+    <p>Text mein pattern dhoondhne ka tareeka. <code>Dear\s+(.+?),</code> = "Dear ke baad comma se pehle jo hai woh pakdo" → naam. PDF se details nikalne mein use hua.</p></div></details>
+
+  <!-- ARCHITECTURE -->
+  <h2 id="arch">🏗️ Architecture — pura system</h2>
+  <p>3 badे hisse, 3 alag jagah. Ye diagram poore system ko dikhata hai:</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs>
+        <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#64748b"/></marker>
+      </defs>
+      <!-- User phone -->
+      <rect x="20" y="140" width="150" height="80" rx="12" fill="#161c2e" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="95" y="170" fill="#f1f5f9" font-size="14" font-weight="700" text-anchor="middle">📱 User</text>
+      <text x="95" y="190" fill="#94a3b8" font-size="11" text-anchor="middle">WhatsApp</text>
+      <text x="95" y="205" fill="#94a3b8" font-size="11" text-anchor="middle">(any phone)</text>
+      <!-- Bot -->
+      <rect x="280" y="30" width="180" height="90" rx="12" fill="#161c2e" stroke="#10b981" stroke-width="1.5"/>
+      <text x="370" y="60" fill="#f1f5f9" font-size="14" font-weight="700" text-anchor="middle">🤖 WhatsApp Bot</text>
+      <text x="370" y="80" fill="#94a3b8" font-size="11" text-anchor="middle">Node.js on Phone/VPS</text>
+      <text x="370" y="98" fill="#94a3b8" font-size="11" text-anchor="middle">listens &amp; replies</text>
+      <!-- Website -->
+      <rect x="280" y="240" width="180" height="90" rx="12" fill="#161c2e" stroke="#8b5cf6" stroke-width="1.5"/>
+      <text x="370" y="270" fill="#f1f5f9" font-size="14" font-weight="700" text-anchor="middle">🌐 Website + Admin</text>
+      <text x="370" y="290" fill="#94a3b8" font-size="11" text-anchor="middle">Flask on Render</text>
+      <text x="370" y="308" fill="#94a3b8" font-size="11" text-anchor="middle">registration, /docs</text>
+      <!-- Mongo -->
+      <rect x="580" y="80" width="160" height="80" rx="12" fill="#161c2e" stroke="#06b6d4" stroke-width="1.5"/>
+      <text x="660" y="112" fill="#f1f5f9" font-size="13" font-weight="700" text-anchor="middle">🗄️ MongoDB</text>
+      <text x="660" y="132" fill="#94a3b8" font-size="11" text-anchor="middle">Atlas (cloud)</text>
+      <text x="660" y="147" fill="#94a3b8" font-size="11" text-anchor="middle">users, links</text>
+      <!-- Cloudinary -->
+      <rect x="580" y="200" width="160" height="80" rx="12" fill="#161c2e" stroke="#ec4899" stroke-width="1.5"/>
+      <text x="660" y="232" fill="#f1f5f9" font-size="13" font-weight="700" text-anchor="middle">📄 Cloudinary</text>
+      <text x="660" y="252" fill="#94a3b8" font-size="11" text-anchor="middle">PDF storage</text>
+      <!-- arrows -->
+      <line x1="170" y1="170" x2="278" y2="90" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+      <line x1="278" y1="105" x2="172" y2="185" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+      <line x1="170" y1="195" x2="278" y2="280" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+      <line x1="460" y1="75" x2="578" y2="115" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+      <line x1="460" y1="285" x2="578" y2="240" stroke="#64748b" stroke-width="1.5" marker-end="url(#ah)"/>
+      <line x1="460" y1="290" x2="578" y2="130" stroke="#64748b" stroke-width="1.2" marker-end="url(#ah)" opacity=".6"/>
+    </svg>
+    <div class="dcap">Bot &amp; Website dono ek hi MongoDB share karte hain — isiliye data sab jagah same rehta hai.</div>
+  </div>
   <div class="stack">
-    <div class="layer"><span class="n" style="background:#10b981">1</span><div><b>WhatsApp Bot</b> (Node.js)</div><span class="d">Phone / Termux · sunta &amp; jawab deta</span></div>
-    <div class="layer"><span class="n" style="background:#3b82f6">2</span><div><b>Website + Admin Panel</b> (Python Flask)</div><span class="d">Render · registration &amp; dashboard</span></div>
-    <div class="layer"><span class="n" style="background:#8b5cf6">3</span><div><b>Database</b> (MongoDB Atlas)</div><span class="d">Cloud · dono share karte hain</span></div>
-    <div class="layer"><span class="n" style="background:#ec4899">4</span><div><b>PDF Storage</b> (Cloudinary)</div><span class="d">Cloud · offer letters</span></div>
+    <div class="layer"><span class="n" style="background:#10b981">1</span><div><b>WhatsApp Bot</b> — sunta &amp; jawab deta</div><span class="d">Phone/VPS · Node.js</span></div>
+    <div class="layer"><span class="n" style="background:#8b5cf6">2</span><div><b>Website + Admin</b> — registration &amp; dashboard</div><span class="d">Render · Flask</span></div>
+    <div class="layer"><span class="n" style="background:#06b6d4">3</span><div><b>MongoDB</b> — sab data</div><span class="d">Atlas · free 512MB</span></div>
+    <div class="layer"><span class="n" style="background:#ec4899">4</span><div><b>Cloudinary</b> — PDF files</div><span class="d">free 25GB</span></div>
   </div>
 
-  <h3>Data flow — attendance kaise banti hai</h3>
-  <ol>
-    <li>Tum WhatsApp pe bhejo: <code>WORK: aaj data cleaning kiya</code></li>
-    <li>Bot DB se tumhara profile utha ke <b>summary</b> dikhata hai (naam, ID, time, kaam)</li>
-    <li>Tum <code>YES</code> bhejo</li>
-    <li>Bot <b>pre-filled Google Form URL</b> banata hai (saare entry IDs ke saath), usse <b>short link</b> banata hai (30 min valid)</li>
-    <li>Short link WhatsApp pe aata hai → tum tap karo → form tumhare phone pe, tumhare Gmail se khulta hai, sab bhara hua</li>
-    <li>Tum Submit dabao → attendance lag gayi</li>
-  </ol>
-  <div class="box info"><span class="ic">💡</span><div><b>Clever part:</b> Bot khud form submit nahi karta — link bhejta hai jo <b>tumhare phone pe</b> khulta hai. Isliye tumhara apna Gmail use hota hai, aur server pe bhaari browser automation nahi chahiye.</div></div>
+  <!-- FLOW -->
+  <h2 id="flow">🔄 How attendance works — step by step</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs><marker id="ah2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#3b82f6"/></marker></defs>
+      <g text-anchor="middle">
+        <rect x="10" y="70" width="120" height="66" rx="10" fill="#161c2e" stroke="#3b82f6"/>
+        <text x="70" y="98" fill="#f1f5f9" font-size="12" font-weight="700">1. WORK:</text>
+        <text x="70" y="115" fill="#94a3b8" font-size="10">tum message</text>
+        <rect x="165" y="70" width="120" height="66" rx="10" fill="#161c2e" stroke="#3b82f6"/>
+        <text x="225" y="94" fill="#f1f5f9" font-size="12" font-weight="700">2. Summary</text>
+        <text x="225" y="110" fill="#94a3b8" font-size="10">bot dikhata</text>
+        <text x="225" y="123" fill="#94a3b8" font-size="10">→ YES?</text>
+        <rect x="320" y="70" width="120" height="66" rx="10" fill="#161c2e" stroke="#3b82f6"/>
+        <text x="380" y="94" fill="#f1f5f9" font-size="12" font-weight="700">3. Build link</text>
+        <text x="380" y="110" fill="#94a3b8" font-size="10">pre-filled URL</text>
+        <text x="380" y="123" fill="#94a3b8" font-size="10">+ short link</text>
+        <rect x="475" y="70" width="120" height="66" rx="10" fill="#161c2e" stroke="#3b82f6"/>
+        <text x="535" y="94" fill="#f1f5f9" font-size="12" font-weight="700">4. Tap link</text>
+        <text x="535" y="110" fill="#94a3b8" font-size="10">form khule</text>
+        <text x="535" y="123" fill="#94a3b8" font-size="10">tumhare phone</text>
+        <rect x="630" y="70" width="120" height="66" rx="10" fill="#161c2e" stroke="#10b981"/>
+        <text x="690" y="98" fill="#6ee7b7" font-size="12" font-weight="700">5. Submit ✓</text>
+        <text x="690" y="115" fill="#94a3b8" font-size="10">attendance!</text>
+        <line x1="130" y1="103" x2="163" y2="103" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <line x1="285" y1="103" x2="318" y2="103" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <line x1="440" y1="103" x2="473" y2="103" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <line x1="595" y1="103" x2="628" y2="103" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#ah2)"/>
+      </g>
+    </svg>
+    <div class="dcap">Bot khud submit nahi karta — link bhejta hai jo tumhare phone pe, tumhare Gmail se khulta hai.</div>
+  </div>
+  <div class="box info"><span class="ic">💡</span><div><b>Clever part:</b> "Pre-filled Google Form link" ka matlab — URL mein hi saare answers bhare hote hain (<code>?entry.774080877=SUM260130&...</code>). Tap karte hi form un values ke saath khulta hai.</div></div>
 
-  <!-- ================= TECH STACK ================= -->
-  <h2 id="stack">🧰 Tech stack — aur kyun</h2>
-  <details><summary>whatsapp-web.js <span class="arrow">›</span></summary><div class="acc-body">
-    <p>WhatsApp automation library. Ek chhupe hue browser (Puppeteer) mein WhatsApp Web chalata hai. <b>Free</b> — WhatsApp Business API ki zaroorat nahi. Trade-off: QR scan chahiye, thoda kam stable.</p></div></details>
-  <details><summary>Pre-filled URL (Playwright ki jagah) <span class="arrow">›</span></summary><div class="acc-body">
-    <p>Pehle Playwright se server pe Chrome khol ke form bharte the. Baad mein switch kiya <b>pre-filled Google Form link</b> pe — form user ke apne phone pe khulta hai, unke Gmail se. Isse Gmail ka issue solve hua aur hosting sasti ho gayi.</p></div></details>
-  <details><summary>pdfplumber + regex (Claude API ki jagah) <span class="arrow">›</span></summary><div class="acc-body">
-    <p>Offer letter ka format <b>fixed</b> hai, isliye free regex se details nikal lete hain. Claude API paisa leta — yahan zaroorat nahi thi.</p></div></details>
-  <details><summary>Flask <span class="arrow">›</span></summary><div class="acc-body"><p>Chhota Python web framework — 2-3 routes ke liye perfect (registration, admin, short-link redirect).</p></div></details>
-  <details><summary>MongoDB Atlas <span class="arrow">›</span></summary><div class="acc-body"><p>Document database — profile data JSON jaisा fit hota hai. Free 512MB. Node aur Python dono se easily connect hota hai.</p></div></details>
-  <details><summary>Cloudinary <span class="arrow">›</span></summary><div class="acc-body"><p>Free file storage (25GB). Render ka filesystem restart pe udd jata hai, isliye PDFs Cloudinary pe rakhte hain — permanent URL milta hai.</p></div></details>
+  <!-- PUPPETEER -->
+  <h2 id="puppeteer">🎭 What is Puppeteer? (important)</h2>
+  <p>Ye samajhna zaroori hai kyunki humari aadhi problems isi se aayi.</p>
+  <p><b>Puppeteer</b> ek Node.js library hai jo <b>Chrome browser ko code se control</b> karti hai — jaise ek robot ke haath jo keyboard-mouse chalate hain. Tum code mein likhte ho "ye button dabao, ye type karo", Puppeteer Chrome mein woh karta hai.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs><marker id="ah3" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#8b5cf6"/></marker></defs>
+      <g text-anchor="middle">
+        <rect x="20" y="70" width="150" height="70" rx="10" fill="#161c2e" stroke="#10b981"/>
+        <text x="95" y="98" fill="#f1f5f9" font-size="13" font-weight="700">Bot code</text>
+        <text x="95" y="116" fill="#94a3b8" font-size="10">whatsapp-web.js</text>
+        <text x="95" y="129" fill="#94a3b8" font-size="10">(Node.js)</text>
 
-  <!-- ================= CODE EXPLAINED ================= -->
-  <h2 id="code">📂 Code explained (aasaan bhasa)</h2>
-  <p>Project 3 folders mein banta hai:</p>
+        <rect x="230" y="70" width="150" height="70" rx="10" fill="#161c2e" stroke="#8b5cf6"/>
+        <text x="305" y="98" fill="#f1f5f9" font-size="13" font-weight="700">🎭 Puppeteer</text>
+        <text x="305" y="116" fill="#94a3b8" font-size="10">"remote control"</text>
 
+        <rect x="440" y="60" width="160" height="90" rx="10" fill="#161c2e" stroke="#f59e0b"/>
+        <text x="520" y="88" fill="#f1f5f9" font-size="13" font-weight="700">🌐 Chromium</text>
+        <text x="520" y="106" fill="#94a3b8" font-size="10">headless (invisible)</text>
+        <text x="520" y="120" fill="#94a3b8" font-size="10">browser</text>
+
+        <rect x="655" y="70" width="90" height="70" rx="10" fill="#161c2e" stroke="#25D366"/>
+        <text x="700" y="100" fill="#f1f5f9" font-size="12" font-weight="700">WhatsApp</text>
+        <text x="700" y="116" fill="#94a3b8" font-size="10">Web</text>
+
+        <line x1="170" y1="105" x2="228" y2="105" stroke="#8b5cf6" stroke-width="1.6" marker-end="url(#ah3)"/>
+        <line x1="380" y1="105" x2="438" y2="105" stroke="#8b5cf6" stroke-width="1.6" marker-end="url(#ah3)"/>
+        <line x1="600" y1="105" x2="653" y2="105" stroke="#8b5cf6" stroke-width="1.6" marker-end="url(#ah3)"/>
+      </g>
+    </svg>
+    <div class="dcap">Bot → Puppeteer → chhupa hua Chromium → WhatsApp Web. Ye poori chain phone/server pe chalti hai.</div>
+  </div>
+  <h4>Puppeteer ki wajah se aayi problems</h4>
+  <ul>
+    <li><b>RAM khaata hai</b> — Chromium bhaari hai (~400MB). Render 512MB pe OOM crash hota tha.</li>
+    <li><b>"Could not find Chrome"</b> — Puppeteer ko Chrome download karna padta hai; cloud pe path issue aaya.</li>
+    <li><b>protocolTimeout</b> — weak phone pe Chromium slow ho jaye to Puppeteer ka command time out ho jata hai.</li>
+    <li><b>Chromium install</b> — Termux/Debian pe alag se chromium install karna pada.</li>
+  </ul>
+  <div class="box info"><span class="ic">🎯</span><div><b>Yahi wajah thi</b> ki humne form bharne ke liye Puppeteer/Playwright chhoda aur <b>pre-filled link</b> pe switch kiya. WhatsApp ke liye Puppeteer abhi bhi zaroori hai (whatsapp-web.js internally use karta hai), par form ke liye nahi.</div></div>
+
+  <!-- ALTERNATIVES -->
+  <h2 id="alt">🔬 Alternatives — agar X ki jagah Y use karte to?</h2>
+  <p>Har bade decision pe humne kya-kya options soche, aur kyun jo choose kiya. Interview aur seekhne ke liye.</p>
+
+  <h3>1. WhatsApp automation</h3>
+  <table>
+    <tr><th>Option</th><th>Pros</th><th>Cons</th></tr>
+    <tr class="chosen"><td><b>whatsapp-web.js</b> <span class="pick">CHOSEN</span></td><td class="pro">Free, personal number, koi approval nahi</td><td class="con">QR scan, kam stable, Puppeteer bhaari</td></tr>
+    <tr><td>Official WhatsApp Business API</td><td class="pro">Bahut stable, official, no browser</td><td class="con">Paid, business account + Meta approval, template message rules</td></tr>
+    <tr><td>Telegram Bot API</td><td class="pro">Free, super stable, proactive messages allowed</td><td class="con">Log Telegram nahi WhatsApp use karte</td></tr>
+  </table>
+  <p class="muted"><b>Kyun whatsapp-web.js:</b> Dost WhatsApp use karte hain, budget ₹0, quick shuru. Trade-off accept kiya.</p>
+
+  <h3>2. Form bharna</h3>
+  <table>
+    <tr><th>Option</th><th>Pros</th><th>Cons</th></tr>
+    <tr class="chosen"><td><b>Pre-filled URL</b> <span class="pick">CHOSEN</span></td><td class="pro">User ke phone pe khule, unka Gmail, koi server browser nahi, sasti hosting</td><td class="con">User ko khud Submit dabana padta, time fields kabhi khaali</td></tr>
+    <tr><td>Playwright/Puppeteer automation</td><td class="pro">Fully automatic (submit bhi)</td><td class="con">Server pe Chrome, Gmail login issue, bhaari RAM, mobile pe nahi</td></tr>
+    <tr><td>Google Forms API</td><td class="pro">Clean programmatic</td><td class="con">Form NPTEL ka hai — humein API access nahi</td></tr>
+  </table>
+
+  <h3>3. PDF se details nikalna</h3>
+  <table>
+    <tr><th>Option</th><th>Pros</th><th>Cons</th></tr>
+    <tr class="chosen"><td><b>pdfplumber + regex</b> <span class="pick">CHOSEN</span></td><td class="pro">Free, fast, offline</td><td class="con">Sirf fixed format pe kaam karta</td></tr>
+    <tr><td>Claude / OpenAI API</td><td class="pro">Kisi bhi format pe kaam kare</td><td class="con">Paid (~₹1-2/PDF), API key chahiye</td></tr>
+    <tr><td>Google Document AI / Tesseract OCR</td><td class="pro">Scanned PDF bhi</td><td class="con">Overkill, setup complex</td></tr>
+  </table>
+  <p class="muted"><b>Kyun regex:</b> NPTEL offer letter ka format fixed hai — free regex kaafi. Paisa bachaya.</p>
+
+  <h3>4. Database</h3>
+  <table>
+    <tr><th>Option</th><th>Pros</th><th>Cons</th></tr>
+    <tr class="chosen"><td><b>MongoDB Atlas</b> <span class="pick">CHOSEN</span></td><td class="pro">Free 512MB, JSON-fit, Node+Python easy</td><td class="con">SQL queries nahi (yahan zaroorat nahi)</td></tr>
+    <tr><td>PostgreSQL / MySQL</td><td class="pro">Powerful relations, SQL</td><td class="con">Schema define karna, is chhote project ke liye zyada</td></tr>
+    <tr><td>Firebase</td><td class="pro">Realtime, easy</td><td class="con">Google lock-in, pricing tricky at scale</td></tr>
+    <tr><td>SQLite (local file)</td><td class="pro">Zero setup</td><td class="con">Cloud share nahi hota (bot + website alag machine)</td></tr>
+  </table>
+
+  <h3>5. Hosting (bot)</h3>
+  <table>
+    <tr><th>Option</th><th>Pros</th><th>Cons</th></tr>
+    <tr class="chosen"><td><b>Termux (phone)</b> <span class="pick">CHOSEN</span></td><td class="pro">Free, full control</td><td class="con">Phone dedicate, battery/net dhyaan</td></tr>
+    <tr><td>DigitalOcean ($200 credit)</td><td class="pro">Reliable, real server</td><td class="con">Card chahiye, credit khatam hone pe paid</td></tr>
+    <tr><td>AWS EC2 (free 12mo)</td><td class="pro">Industry standard, scalable</td><td class="con">Complex, 12mo baad paid</td></tr>
+    <tr><td>Render free</td><td class="pro">Easy deploy</td><td class="con">512MB → Puppeteer OOM, sleep issue</td></tr>
+  </table>
+
+  <!-- CODE -->
+  <h2 id="code">📂 Code explained</h2>
   <details open><summary>step2_whatsapp_bot/ — the bot <span class="arrow">›</span></summary><div class="acc-body">
-    <h3>bot.js</h3>
-    <p>Dil hai project ka. Kaam:</p>
-    <ul>
-      <li><b>Event listeners</b> — WhatsApp message aate hi react karta hai (doorbell jaisा).</li>
-      <li><b>State machine</b> — har user ka ek "state" hota hai: <code>IDLE</code> (koi kaam nahi) ya <code>AWAITING_CONFIRM</code> (YES ka wait). ATM machine jaisा — har state mein alag behave.</li>
-      <li><b>Command parsing</b> — sirf ye commands react karte hain: REGISTER, LINK, WORK:, YES, CANCEL, LOGIN, !status, !help. Baaki sab ignore (privacy).</li>
-      <li><b>Auth strategy</b> — MongoDB ya local disk pe WhatsApp session save karta hai (taaki dobara QR na scan karna pade).</li>
-      <li><b>Health server</b> — ek chhota webpage (<code>/qr</code>, <code>/health</code>) jo QR dikhata hai aur "bot zinda hai" batata hai.</li>
-    </ul>
-    <h3>prefill.js</h3>
-    <p>Google Form ka bhara-bharaya URL banata hai. Har field ka ek <code>entry.XXXX</code> ID hota hai (form inspect karke nikale the). Ye un IDs ke saath URL jodta hai.</p>
-    <h3>db.js</h3>
-    <p>Data layer. Users ko MongoDB se laata/save karta hai. <b>Smart:</b> agar cloud set hai to MongoDB, warna local files — same code dono pe.</p>
-    <h3>reminder.js</h3>
-    <p>Cron scheduler. Shaam 5-11 baje har 30 min un logon ko reminder bhejta hai jinhone aaj attendance nahi bhari.</p>
+    <p><b>bot.js</b> — dil. Events sunta hai, state machine (IDLE/AWAITING_CONFIRM), command parsing (WORK:/YES/LINK...), auth strategy (session save), health server (/qr, /health).</p>
+    <p><b>prefill.js</b> — Google Form ka bhara-bharaya URL banata hai (entry IDs ke saath).</p>
+    <p><b>db.js</b> — MongoDB ya local files se users laata/save karta hai.</p>
+    <p><b>reminder.js</b> — cron scheduler (5-11PM reminders).</p>
   </div></details>
-
   <details><summary>step4_web_onboarding/ — the website <span class="arrow">›</span></summary><div class="acc-body">
-    <h3>app.py</h3>
-    <p>Flask server. Routes: <code>/</code> (registration), <code>/register</code> (PDF upload process), <code>/r/&lt;id&gt;</code> (short-link → real form redirect), <code>/admin</code> (dashboard), <code>/docs</code>, <code>/commands</code>.</p>
-    <h3>extract_offer_letter.py</h3>
-    <p>PDF se details nikalta hai (pdfplumber + regex). Ek "stray space" artifact bhi handle karta hai ("P rof" → "Prof").</p>
-    <h3>cloud_storage.py</h3>
-    <p>PDF ko Cloudinary pe upload karke permanent URL deta hai.</p>
-    <h3>db.py</h3>
-    <p>Python data layer — app.py MongoDB se baat karne ke liye use karta hai.</p>
+    <p><b>app.py</b> — Flask routes: <code>/</code> registration, <code>/register</code>, <code>/r/&lt;id&gt;</code> short-link redirect, <code>/admin</code>, <code>/docs</code>, <code>/commands</code>.</p>
+    <p><b>extract_offer_letter.py</b> — PDF se details (pdfplumber+regex).</p>
+    <p><b>cloud_storage.py</b> — PDF Cloudinary pe upload.</p>
+    <p><b>db.py</b> — Python data layer.</p>
   </div></details>
 
-  <details><summary>Key concepts — regex, cron, state machine <span class="arrow">›</span></summary><div class="acc-body">
-    <p><b>Regex:</b> text mein pattern dhoondhne ka tareeka. <code>Dear\s+(.+?),</code> = "Dear ke baad, comma se pehle jo hai woh pakdo" → naam nikal aata hai.</p>
-    <p><b>Cron:</b> "is time pe ye chalao" scheduler. <code>*/30 17-23 * * *</code> = 5PM-11PM, har 30 min.</p>
-    <p><b>State machine:</b> user ek time pe ek hi state mein — code us state ke hisaab se react karta hai.</p>
-  </div></details>
+  <!-- TERMUX -->
+  <h2 id="termux">📱 Termux setup — poora samajh</h2>
+  <div class="box info"><span class="ic">🏠</span><div><b>Do "kamre":</b> &nbsp; <b>Termux</b> (bahar, prompt <code>$</code>) &nbsp;|&nbsp; <b>Debian</b> (andar, prompt <code>#</code>).<br>Bot ka SAARA kaam <b>Debian (#)</b> mein — kyunki chromium wahan hai. Sirf wake-lock + tmux Termux (<code>$</code>) level pe.</div></div>
+  <p>Full steps <a href="#deploy">Deployment → Termux</a> dropdown mein hain (niche).</p>
 
-  <!-- ================= TERMUX SETUP ================= -->
-  <h2 id="termux">📱 Termux setup — proper samajh</h2>
-  <p>Bot ko 24x7 chalane ke liye purane Android phone pe Termux use kiya. Sabse confusing part: <b>Termux</b> vs <b>Debian</b>.</p>
+  <!-- RULES -->
+  <h2 id="rules">📏 Hosting rules — phone pe chalane ke</h2>
+  <div class="box rule"><span class="ic">1️⃣</span><div><b>Internet HAMESHA on.</b> WhatsApp Web + MongoDB se lagatar connected rehna padta. WiFi stable rakho.</div></div>
+  <div class="box rule"><span class="ic">2️⃣</span><div><b>Phone HAMESHA charging pe.</b> 24x7 process battery khaata hai.</div></div>
+  <div class="box rule"><span class="ic">3️⃣</span><div><b>Wake-lock:</b> <code>termux-wake-lock</code> — bina iske Android screen-off pe Termux maar deta hai.</div></div>
+  <div class="box rule"><span class="ic">4️⃣</span><div><b>Battery optimization OFF:</b> Settings → Apps → Termux → Unrestricted. Xiaomi/Realme/Oppo mein Autostart ON.</div></div>
+  <div class="box rule"><span class="ic">5️⃣</span><div><b>Termux swipe-close mat karo.</b> Background mein chalne do.</div></div>
+  <div class="box rule"><span class="ic">6️⃣</span><div><b>Phone WhatsApp se bot unlink mat karo.</b> Linked Devices mein rehne do.</div></div>
+  <div class="box warn"><span class="ic">⚠️</span><div>healthchecks.io se down-alert lagaya hai — bot band ho to email aa jayega.</div></div>
 
-  <div class="box info"><span class="ic">🏠</span><div><b>Do "kamre" hain:</b><br>
-    • <b>Termux</b> = bahar wala. Prompt <code>$</code> dikhta hai.<br>
-    • <b>Debian</b> = Termux ke andar ek Linux. Prompt <code>#</code> (root@localhost) dikhta hai.<br>
-    <b>Rule:</b> Bot ka SAARA kaam Debian ke andar (<code>#</code>) hota hai — kyunki Chromium wahan install hui.</div></div>
+  <!-- DEPLOYMENT FULL -->
+  <h2 id="deploy">🚀 Deployment — full step-by-step</h2>
+  <p>Har platform ke <b>poore</b> steps dropdown mein. Copy-paste ready.</p>
 
-  <h3>Kaise pehchaano tum kahan ho</h3>
-  <ul><li><code>$</code> dikh raha → <b>Termux</b> (bahar)</li><li><code>#</code> dikh raha → <b>Debian</b> (andar)</li></ul>
-
-  <h3>Full setup (order mein)</h3>
-  <ol>
-    <li><b>F-Droid install</b> (browser se) → usse <b>Termux</b> install (Play Store wala purana hai)</li>
-    <li>Termux mein: <code>pkg install nodejs-lts git proot-distro tmux</code></li>
-    <li>Debian install: <code>proot-distro install debian</code></li>
-    <li>Debian mein jao: <code>proot-distro login debian</code> → prompt <code>#</code></li>
-    <li>Debian mein: <code>apt install -y chromium nodejs npm git nano</code></li>
-    <li>Repo clone: <code>git clone https://github.com/Abhinav27112005/nptel-attendance-bot.git</code></li>
-    <li><code>.env</code> file banao (MongoDB, Cloudinary, <code>PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium</code>, <code>FORCE_LOCAL_AUTH=true</code>)</li>
-    <li><code>cd step2_whatsapp_bot &amp;&amp; npm install --ignore-scripts</code></li>
-    <li><code>node bot.js</code> → QR aayega → doosre device se <code>/qr</code> khol ke phone se scan</li>
-  </ol>
-
-  <h3>24x7 chalao (tmux + wake-lock)</h3>
-  <p>Termux band hone pe bot na mare, iske liye:</p>
-  <pre><code># TERMUX mein (bahar, $ prompt):
-termux-wake-lock          # Android ko bolo: Termux mat maro
-tmux new -s bot           # background session banao
-# ab session ke andar:
-proot-distro login debian # Debian mein jao
+  <details><summary><span class="badge b-free">FREE</span> &nbsp;<span class="badge b-plat">Termux</span>&nbsp; Old Android phone <span class="arrow">›</span></summary><div class="acc-body">
+    <h4>Phase 1 — F-Droid &amp; Termux</h4>
+    <ol>
+      <li>Phone browser: <code>f-droid.org</code> → Download F-Droid APK → install (unknown sources allow karo)</li>
+      <li>F-Droid mein search: <b>Termux</b> → install. Saath mein <b>Termux:Boot</b> bhi.</li>
+    </ol>
+    <h4>Phase 2 — Termux base setup</h4>
+    <pre><code>termux-setup-storage        <span class="c"># storage permission (Allow)</span>
+pkg update -y &amp;&amp; pkg upgrade -y
+pkg install -y nodejs-lts git proot-distro tmux</code></pre>
+    <h4>Phase 3 — Debian install (chromium ke liye)</h4>
+    <pre><code>proot-distro install debian
+proot-distro login debian    <span class="c"># ab prompt # ho jayega</span></code></pre>
+    <h4>Phase 4 — Debian ke andar (# prompt)</h4>
+    <pre><code>apt update
+apt install -y chromium nodejs npm git nano
+chromium --version           <span class="c"># confirm kare</span>
+which chromium               <span class="c"># /usr/bin/chromium (note karo)</span></code></pre>
+    <h4>Phase 5 — Repo + config</h4>
+    <pre><code>cd ~
+git clone https://github.com/Abhinav27112005/nptel-attendance-bot.git
+cd nptel-attendance-bot
+nano .env</code></pre>
+    <p>.env mein daalo:</p>
+    <pre><code>MONGODB_URI=your-mongodb-string
+CLOUDINARY_URL=your-cloudinary-url
+ADMIN_PASSWORD=strong-password
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+FORCE_LOCAL_AUTH=true</code></pre>
+    <h4>Phase 6 — Install &amp; first run</h4>
+    <pre><code>cd step2_whatsapp_bot
+npm install --ignore-scripts
+node bot.js                  <span class="c"># QR aayega</span></code></pre>
+    <p>QR scan: doosre device pe <code>http://&lt;phone-ip&gt;:3000/qr</code> khol ke phone se scan karo. Phir Ctrl+C.</p>
+    <h4>Phase 7 — 24x7 (tmux + wake-lock)</h4>
+    <pre><code>exit                         <span class="c"># Debian se bahar, ab Termux ($)</span>
+termux-wake-lock
+tmux new -s bot
+proot-distro login debian
 cd ~/nptel-attendance-bot/step2_whatsapp_bot
 export TZ='Asia/Kolkata'
-bash ~/run-bot.sh         # bot chalao (auto-restart loop)
-# detach: Ctrl+B dabao, chhodo, phir D</code></pre>
-
-  <!-- ================= HOSTING RULES ================= -->
-  <h2 id="rules">📏 Hosting rules — phone pe chalane ke</h2>
-  <p>Kal host kiya, phir band ho gaya — kyunki ye rules follow nahi hue. Inhe zaroor samjho:</p>
-
-  <div class="box rule"><span class="ic">1️⃣</span><div><b>Internet HAMESHA on rakho.</b> Bot ko WhatsApp Web + MongoDB se lagatar connected rehna padta hai. WiFi/data band = bot disconnect. WiFi stable ho, mobile data se behtar.</div></div>
-  <div class="box rule"><span class="ic">2️⃣</span><div><b>Phone HAMESHA charging pe.</b> 24x7 process battery jaldi khaata hai. Aur battery 0% = bot band. Charger laga ke rakho.</div></div>
-  <div class="box rule"><span class="ic">3️⃣</span><div><b>Wake-lock lagao.</b> <code>termux-wake-lock</code> — bina iske Android screen off/lock pe Termux ko maar deta hai.</div></div>
-  <div class="box rule"><span class="ic">4️⃣</span><div><b>Battery optimization OFF.</b> Settings → Apps → Termux → Battery → <b>Unrestricted</b>. Xiaomi/Realme/Oppo mein <b>Autostart ON</b> bhi karo.</div></div>
-  <div class="box rule"><span class="ic">5️⃣</span><div><b>Termux app band mat karo</b> recent-apps se swipe karke (wake-lock ke bawajood risky). Peeche chalne do.</div></div>
-  <div class="box rule"><span class="ic">6️⃣</span><div><b>Phone WhatsApp mat unlink karo.</b> Settings → Linked Devices mein bot ka entry rehne do.</div></div>
-  <div class="box warn"><span class="ic">⚠️</span><div><b>Bot down alert:</b> healthchecks.io se email alert lagaya hai — bot band ho to tumhe pata chal jayega. Phir upar wale tmux steps se dobara start karo.</div></div>
-
-  <!-- ================= DEPLOYMENT OPTIONS ================= -->
-  <h2 id="deploy">🚀 Deployment options (industry standard)</h2>
-  <p>Ek WhatsApp bot ko 24x7 chalane ke alag-alag tareeke. Har ek ke steps niche dropdown mein:</p>
-
-  <details><summary><span class="badge b-plat">Termux</span> &nbsp; Old Android phone (Free) <span class="arrow">›</span></summary><div class="acc-body">
-    <p><b>Best for:</b> Zero budget. Cost ₹0.</p>
-    <ol>
-      <li>F-Droid → Termux install</li>
-      <li>Debian proot install (chromium ke liye)</li>
-      <li>Repo clone + npm install</li>
-      <li>FORCE_LOCAL_AUTH=true (session phone disk pe)</li>
-      <li>tmux + wake-lock se 24x7</li>
-    </ol>
-    <p class="muted"><b>Pros:</b> free, full control. <b>Cons:</b> phone dedicate karna padega, battery/net ka dhyaan.</p>
+bash ~/run-bot.sh
+<span class="c"># detach: Ctrl+B dabao, chhodo, phir D</span></code></pre>
+    <h4>Phase 8 — Battery</h4>
+    <p>Settings → Apps → Termux → Battery → <b>Unrestricted</b>. Autostart ON (Xiaomi/Realme/Oppo). Phone charging pe rakho.</p>
   </div></details>
 
-  <details><summary><span class="badge b-plat">DigitalOcean</span> &nbsp; Cloud VM ($200 student credit) <span class="arrow">›</span></summary><div class="acc-body">
-    <p><b>Best for:</b> GitHub Student Pack wale. $200 credit = ~33 months free.</p>
+  <details><summary><span class="badge b-paid">$200 CREDIT</span> &nbsp;<span class="badge b-plat">DigitalOcean</span>&nbsp; Cloud VM — full 20 steps <span class="arrow">›</span></summary><div class="acc-body">
+    <h4>Phase 1 — Credit &amp; Droplet</h4>
     <ol>
-      <li>Student Pack se DigitalOcean $200 credit redeem</li>
-      <li>Droplet banao: Ubuntu 22.04, Basic $6/mo (1GB RAM), Bangalore region</li>
-      <li>SSH: <code>ssh root&#64;&lt;droplet-ip&gt;</code></li>
-      <li>Swap file banao (2GB — Puppeteer OOM se bachne)</li>
-      <li>Install: <code>apt install -y nodejs chromium-browser git</code></li>
-      <li>Repo clone + <code>.env</code> + <code>npm install</code></li>
-      <li><code>npm i -g pm2 &amp;&amp; pm2 start bot.js --name nptel-bot</code></li>
-      <li><code>pm2 startup &amp;&amp; pm2 save</code> (reboot auto-start)</li>
-      <li>QR scan via <code>&lt;ip&gt;:3000/qr</code></li>
+      <li><code>education.github.com/pack</code> → DigitalOcean → $200 credit redeem (GitHub account connect)</li>
+      <li>DO Dashboard → <b>Create → Droplets</b></li>
+      <li>Region: <b>Bangalore (BLR1)</b></li>
+      <li>Image: <b>Ubuntu 22.04 LTS</b></li>
+      <li>Size: Basic → Regular → <b>$6/mo (1GB RAM, 25GB SSD)</b></li>
+      <li>Authentication: <b>Password</b> → strong password set karo (note karo)</li>
+      <li><b>Create Droplet</b> → 60 sec mein ban jayega → <b>IP address note karo</b></li>
     </ol>
-    <p class="muted"><b>Pros:</b> reliable, real server, no phone. <b>Cons:</b> card verification chahiye.</p>
+    <h4>Phase 2 — SSH connect (laptop se)</h4>
+    <ol start="8">
+      <li>PowerShell/terminal: <code>ssh root&#64;&lt;DROPLET_IP&gt;</code></li>
+      <li>"Are you sure?" → <code>yes</code> → password daalo (typing nahi dikhega, normal hai)</li>
+      <li>Success: <code>root&#64;droplet:~#</code> dikhega</li>
+    </ol>
+    <h4>Phase 3 — Server setup</h4>
+    <pre><code><span class="c"># 11. System update</span>
+apt update &amp;&amp; apt upgrade -y
+
+<span class="c"># 12. Swap file (2GB) — Puppeteer OOM se bachne ko</span>
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+
+<span class="c"># 13. Node.js LTS</span>
+curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+apt install -y nodejs
+
+<span class="c"># 14. Chromium + Puppeteer dependencies</span>
+apt install -y chromium-browser git
+
+<span class="c"># 15. Verify</span>
+node --version
+which chromium-browser        <span class="c"># /usr/bin/chromium-browser</span></code></pre>
+    <h4>Phase 4 — Deploy bot</h4>
+    <pre><code><span class="c"># 16. Clone + env</span>
+cd /root
+git clone https://github.com/Abhinav27112005/nptel-attendance-bot.git
+cd nptel-attendance-bot
+nano .env
+<span class="c"># daalo: MONGODB_URI, CLOUDINARY_URL, ADMIN_PASSWORD,</span>
+<span class="c"># PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser, FORCE_LOCAL_AUTH=true</span>
+
+<span class="c"># 17. Install</span>
+cd step2_whatsapp_bot
+npm install --ignore-scripts</code></pre>
+    <h4>Phase 5 — PM2 (24x7 + auto-restart)</h4>
+    <pre><code><span class="c"># 18. PM2 install &amp; start</span>
+npm install -g pm2
+pm2 start bot.js --name nptel-bot
+
+<span class="c"># 19. Boot pe auto-start</span>
+pm2 startup                   <span class="c"># jo line bole use run karo</span>
+pm2 save
+
+<span class="c"># 20. QR scan: browser mein http://&lt;DROPLET_IP&gt;:3000/qr</span>
+pm2 logs nptel-bot            <span class="c"># logs dekho, "ready" confirm</span></code></pre>
+    <p class="muted"><b>Update code:</b> <code>cd ~/nptel-attendance-bot &amp;&amp; git pull &amp;&amp; cd step2_whatsapp_bot &amp;&amp; pm2 restart nptel-bot</code></p>
   </div></details>
 
-  <details><summary><span class="badge b-plat">AWS EC2</span> &nbsp; Amazon cloud (Free tier 12 months) <span class="arrow">›</span></summary><div class="acc-body">
-    <p><b>Best for:</b> AWS free tier (t2.micro/t3.micro, 12 months free, 1GB RAM).</p>
+  <details><summary><span class="badge b-paid">FREE 12mo</span> &nbsp;<span class="badge b-plat">AWS EC2</span>&nbsp; Amazon cloud — full steps <span class="arrow">›</span></summary><div class="acc-body">
+    <h4>Phase 1 — Instance launch</h4>
     <ol>
       <li>AWS account banao (card chahiye, free tier mein charge nahi)</li>
-      <li>EC2 → Launch Instance → <b>Ubuntu 22.04</b>, <b>t3.micro</b> (free tier eligible)</li>
-      <li>Key pair (.pem) download karo, Security Group mein SSH (port 22) allow</li>
-      <li>SSH: <code>ssh -i key.pem ubuntu&#64;&lt;public-ip&gt;</code></li>
-      <li>Swap file banao (2GB)</li>
-      <li><code>sudo apt update &amp;&amp; sudo apt install -y nodejs npm chromium-browser git</code></li>
-      <li>Repo clone + <code>.env</code> + <code>npm install --ignore-scripts</code></li>
-      <li><code>sudo npm i -g pm2 &amp;&amp; pm2 start bot.js --name nptel-bot &amp;&amp; pm2 save</code></li>
-      <li>QR scan: Security Group mein port 3000 temporarily allow → <code>&lt;public-ip&gt;:3000/qr</code></li>
+      <li>Console → <b>EC2 → Launch Instance</b></li>
+      <li>Name: nptel-bot; AMI: <b>Ubuntu 22.04 LTS</b></li>
+      <li>Instance type: <b>t3.micro</b> (free tier eligible)</li>
+      <li>Key pair: <b>Create new</b> → <code>.pem</code> file download (safe rakho)</li>
+      <li>Network: Security Group mein <b>SSH (22)</b> allow (My IP)</li>
+      <li>Launch Instance → Public IP note karo</li>
     </ol>
-    <p class="muted"><b>Pros:</b> industry standard, scalable. <b>Cons:</b> 12 month ke baad paid, thoda complex, billing pe nazar rakho.</p>
+    <h4>Phase 2 — SSH connect</h4>
+    <pre><code><span class="c"># Windows PowerShell / terminal</span>
+ssh -i "path\to\key.pem" ubuntu&#64;&lt;PUBLIC_IP&gt;
+<span class="c"># .pem permission error aaye to: icacls key.pem /inheritance:r /grant:r "%username%:R"</span></code></pre>
+    <h4>Phase 3 — Setup (same as DigitalOcean)</h4>
+    <pre><code>sudo apt update &amp;&amp; sudo apt upgrade -y
+
+<span class="c"># Swap 2GB</span>
+sudo fallocate -l 2G /swapfile &amp;&amp; sudo chmod 600 /swapfile
+sudo mkswap /swapfile &amp;&amp; sudo swapon /swapfile
+
+<span class="c"># Node + Chromium</span>
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo bash -
+sudo apt install -y nodejs chromium-browser git</code></pre>
+    <h4>Phase 4 — Deploy + PM2</h4>
+    <pre><code>git clone https://github.com/Abhinav27112005/nptel-attendance-bot.git
+cd nptel-attendance-bot &amp;&amp; nano .env       <span class="c"># same env vars</span>
+cd step2_whatsapp_bot &amp;&amp; npm install --ignore-scripts
+sudo npm install -g pm2
+pm2 start bot.js --name nptel-bot &amp;&amp; pm2 save
+pm2 startup                                <span class="c"># jo line bole run karo</span></code></pre>
+    <h4>Phase 5 — QR scan</h4>
+    <p>Security Group mein <b>port 3000</b> temporarily allow → browser <code>http://&lt;PUBLIC_IP&gt;:3000/qr</code> → scan → phir port 3000 hata do (security).</p>
+    <div class="box warn"><span class="ic">⚠️</span><div>12 month free tier ke baad t3.micro paid ho jata hai. Billing alerts set karo.</div></div>
   </div></details>
 
-  <details><summary><span class="badge b-plat">Render</span> &nbsp; Web Service (Free, but limited) <span class="arrow">›</span></summary><div class="acc-body">
-    <p><b>Best for:</b> Website/admin panel (jo abhi Render pe hai). Bot ke liye tricky.</p>
+  <details><summary><span class="badge b-free">FREE*</span> &nbsp;<span class="badge b-plat">Render</span>&nbsp; Web Service (website ke liye best) <span class="arrow">›</span></summary><div class="acc-body">
+    <p><b>Website/admin</b> Render pe hi hai. <b>Bot</b> ke liye 512MB tight hai (OOM) — isliye bot Termux/VPS pe.</p>
+    <h4>Website deploy (jo abhi hai)</h4>
     <ol>
-      <li>New Web Service → connect GitHub repo</li>
-      <li>Root: <code>step2_whatsapp_bot</code>, Build: <code>npm install</code>, Start: <code>node bot.js</code></li>
-      <li>Env vars: MONGODB_URI, CLOUDINARY_URL (RemoteAuth session persist ke liye)</li>
-      <li><code>.puppeteerrc.cjs</code> se Chrome cache project dir mein (Render ka fix)</li>
-      <li>UptimeRobot se <code>/health</code> ping (15-min sleep rokne ko)</li>
+      <li>Render → New → <b>Web Service</b> → connect repo</li>
+      <li>Root Directory: <code>step4_web_onboarding</code></li>
+      <li>Build: <code>pip install -r requirements.txt</code></li>
+      <li>Start: <code>gunicorn app:app --bind 0.0.0.0:$PORT</code></li>
+      <li>Env vars: <code>MONGODB_URI</code>, <code>CLOUDINARY_URL</code>, <code>ADMIN_PASSWORD</code>, <code>BOT_WHATSAPP_NUMBER</code></li>
+      <li>Create → live URL milega</li>
     </ol>
-    <div class="box warn"><span class="ic">⚠️</span><div>Render free tier = <b>512MB RAM</b>. Puppeteer + Chromium ~400-500MB use karta hai → aksar <b>OOM crash</b>. Isliye humne bot ko Termux/DigitalOcean pe move kiya. Render sirf website ke liye theek hai.</div></div>
+    <h4>Agar bot bhi Render pe (advanced)</h4>
+    <ol>
+      <li>Root: <code>step2_whatsapp_bot</code>, Start: <code>node bot.js</code></li>
+      <li><code>.puppeteerrc.cjs</code> cache fix (already repo mein)</li>
+      <li>MONGODB_URI set (RemoteAuth session persist) — <b>FORCE_LOCAL_AUTH mat set karo</b></li>
+      <li>UptimeRobot se <code>/health</code> har 5 min ping (sleep rokne ko)</li>
+      <li>QR: <code>&lt;service&gt;.onrender.com/qr</code></li>
+    </ol>
   </div></details>
 
-  <!-- ================= PROBLEMS & FIXES ================= -->
-  <h2 id="problems">🐞 Problems &amp; fixes — poora error log</h2>
-  <p>Is project mein jo bhi error aaya, uska matlab, aur kaise fix hua. Interview aur future debugging ke liye gold.</p>
+  <!-- PROBLEMS -->
+  <h2 id="problems">🐞 Problems &amp; fixes — pura error log</h2>
+  <p>Jo bhi error aaya, uska matlab, aur fix. Debugging aur interview ke liye.</p>
+  <h3>WhatsApp bot</h3>
+  <details><summary><span class="badge b-err">Bot</span> Self-message pe react nahi karta <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Matlab</div><div class="val"><code>message</code> event self-messages pe fire nahi hota.</div></div><div class="pf"><div class="lbl">Fix</div><div class="val"><code>message_create</code> bhi listen kiya.</div></div></div></details>
+  <details><summary><span class="badge b-err">Bot</span> @lid vs @c.us — dost ka message ignore <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Matlab</div><div class="val">2 ID formats; @lid ka phone reliably resolve nahi hota.</div></div><div class="pf"><div class="lbl">Fix</div><div class="val"><code>LINK &lt;id&gt;</code> command — whatsapp_id DB mein save.</div></div></div></details>
+  <details><summary><span class="badge b-err">Bot</span> Har message 2 baar process <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val">Message ID <code>Set</code> se dedup.</div></div></div></details>
+  <details><summary><span class="badge b-err">Bot</span> Reminder double firing <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val"><code>remindersStarted</code> flag — ek hi baar cron.</div></div></div></details>
+  <details><summary><span class="badge b-err">Bot</span> ProtocolError: callFunctionOn timed out <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Matlab</div><div class="val">Weak phone → Chromium slow → 180s timeout crash.</div></div><div class="pf"><div class="lbl">Fix</div><div class="val"><code>protocolTimeout:300000</code>, group messages ignore.</div></div></div></details>
+  <h3>PDF / Form</h3>
+  <details><summary><span class="badge b-err">PDF</span> "P rof" — stray spaces <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val"><code>clean_stray()</code> — index-1 space hatao.</div></div></div></details>
+  <details><summary><span class="badge b-err">PDF</span> Date regex agli line utha raha <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val"><code>[\d -]+</code> (\s nahi — newline avoid).</div></div></div></details>
+  <h3>Cloud / deploy</h3>
+  <details><summary><span class="badge b-err">MongoDB</span> SSL handshake failed <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val">Atlas Network Access → <code>0.0.0.0/0</code> permanent.</div></div></div></details>
+  <details><summary><span class="badge b-err">Render</span> Port scan timeout <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val"><code>gunicorn app:app --bind 0.0.0.0:$PORT</code></div></div></div></details>
+  <details><summary><span class="badge b-err">Render</span> Could not find Chrome <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val"><code>.puppeteerrc.cjs</code> — cache project dir mein.</div></div></div></details>
+  <details><summary><span class="badge b-err">Cloudinary</span> Upload silently skip <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val">Render pe <code>CLOUDINARY_URL</code> env var add.</div></div></div></details>
+  <h3>Termux / proot</h3>
+  <details><summary><span class="badge b-err">Ubuntu</span> chromium snap error <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val">Ubuntu chhod ke <b>Debian</b> (asli chromium).</div></div></div></details>
+  <details><summary><span class="badge b-err">npm</span> ENOENT rename — cache corrupt <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val"><code>rm -rf ~/.npm/_cacache</code> + <code>--maxsockets 1</code>.</div></div></div></details>
+  <details><summary><span class="badge b-err">npm</span> cosmiconfig "Missing loader" <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val"><code>overrides: {cosmiconfig: "8.3.6"}</code></div></div></div></details>
+  <details><summary><span class="badge b-err">Session</span> QR loop <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val">Termux pe <code>FORCE_LOCAL_AUTH=true</code> (session phone disk pe).</div></div></div></details>
+  <details><summary><span class="badge b-err">Time</span> Debian galat timezone <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val"><code>ln -sf .../Asia/Kolkata /etc/localtime</code> + <code>export TZ='Asia/Kolkata'</code>.</div></div></div></details>
+  <details><summary><span class="badge b-err">Termux</span> Bot band on close <span class="arrow">›</span></summary><div class="acc-body"><div class="pf"><div class="lbl">Fix</div><div class="val"><code>termux-wake-lock</code> + battery OFF + tmux.</div></div></div></details>
 
-  <h3>WhatsApp bot errors</h3>
-  <details><summary><span class="badge b-err">Bot</span> Bot silent tha, khud ke message pe react nahi karta <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val"><code>message</code> event khud ke messages pe fire nahi hota.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>message_create</code> event bhi listen kiya (jo self-messages pe fire hota hai).</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Bot</span> @lid vs @c.us — dost ka message ignore ho raha tha <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">WhatsApp ke 2 ID formats: @c.us (phone) aur @lid (device ID). Naye accounts @lid se aate hain, aur unka phone reliably resolve nahi hota.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>LINK &lt;id&gt;</code> command banaya — user apni ID bata ke WhatsApp account ko profile se link karta hai. DB mein whatsapp_id save hota hai.</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Bot</span> Har message 2 baar process ho raha tha <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">@lid messages dono <code>message</code> aur <code>message_create</code> events fire karte hain.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val">Message ID ka <code>Set</code> banaya — dobara aane wali ID skip.</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Bot</span> Reminder do baar bhej raha tha <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val"><code>ready</code> event reconnect pe dobara fire hota tha → do cron register.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>remindersStarted</code> flag — ek hi baar cron banao.</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Bot</span> ProtocolError: Runtime.callFunctionOn timed out <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Weak phone pe Chromium slow ho gaya, message bhejte waqt 180s mein jawab nahi diya → timeout crash.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>protocolTimeout: 300000</code> (5 min), group messages (@g.us) ignore (load kam), timeout pe error-reply skip.</div></div>
-  </div></details>
-
-  <h3>PDF extraction errors</h3>
-  <details><summary><span class="badge b-err">PDF</span> "P rof" instead of "Prof" — stray spaces <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">pdfplumber ne values ke pehle character ke baad extra space daal diya (PDF generation artifact).</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>clean_stray()</code> — index-1 pe space ho to hata do. ID/dates ke liye saare space hata do.</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">PDF</span> Date mein agli line ka digit aa raha tha <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Regex <code>[\d\s-]+</code> mein <code>\s</code> newline bhi match karta tha.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>[\d -]+</code> use kiya (sirf space aur hyphen, newline nahi).</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Form</span> Dropdown/date/time fill nahi ho raha tha (purana Playwright approach) <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Google Forms ke dropdown custom divs hain; date native input hai; time 2 alag boxes.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val">Dropdown = listbox click + data-value; date = native <code>input[type=date]</code> "YYYY-MM-DD"; time = "Hour"/"Minute" boxes. (Baad mein pura pre-filled URL approach pe switch kiya.)</div></div>
-  </div></details>
-
-  <h3>Cloud / deployment errors</h3>
-  <details><summary><span class="badge b-err">MongoDB</span> SSL handshake failed <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Atlas ka IP access list expire ho gaya tha (temporary "allow anywhere").</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val">Network Access mein <code>0.0.0.0/0</code> permanent add kiya.</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Render</span> Port scan timeout — deploy fail <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Render <code>$PORT</code> pe traffic bhejta hai, par app default port pe sun rahi thi.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val">Start command: <code>gunicorn app:app --bind 0.0.0.0:$PORT</code></div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Render</span> Could not find Chrome (Puppeteer) <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Chrome build phase mein download hua par runtime tak persist nahi hua (Render cache alag hai).</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>.puppeteerrc.cjs</code> se cache directory ko project source ke andar rakha (jo runtime tak survive karta).</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Cloudinary</span> PDF upload silently skip <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Render pe <code>CLOUDINARY_URL</code> env var set nahi tha.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val">Render dashboard → Environment mein env var add kiya. (Debug: local pe test kiya — chala → matlab env issue.)</div></div>
-  </div></details>
-
-  <h3>Termux / proot errors</h3>
-  <details><summary><span class="badge b-err">Ubuntu</span> chromium snap error <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Ubuntu ka chromium ab snap-only hai, aur snap proot mein nahi chalta.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val">Ubuntu chhod ke <b>Debian</b> use kiya — usme asli (non-snap) chromium hai.</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">npm</span> ENOENT rename — cache corrupt <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">proot ka filesystem <code>rename</code> operation mein dikkat karta hai, npm cache corrupt ho jata hai.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>rm -rf ~/.npm/_cacache</code> + <code>npm install --maxsockets 1</code> (ek-ek file, no parallel).</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">npm</span> cosmiconfig "Missing loader for extension package.json" <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Fresh install pe cosmiconfig v9 aa gaya, jo puppeteer ke saath toot jata hai (v9 ne package.json loader hata diya).</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>package.json</code> mein <code>"overrides": { "cosmiconfig": "8.3.6" }</code> — purana compatible version force.</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Session</span> QR loop — restart pe dobara QR maang raha <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Render pe filesystem ephemeral — session udd jati. Termux pe RemoteAuth ka Mongo-zip backup fail ho raha tha.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val">Termux (persistent disk) pe <code>FORCE_LOCAL_AUTH=true</code> — session phone disk pe permanent.</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Time</span> Debian galat timezone (3 AM dikha raha tha) <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime</code> + <code>export TZ='Asia/Kolkata'</code> run-bot.sh mein.</div></div>
-  </div></details>
-  <details><summary><span class="badge b-err">Termux</span> Bot band ho gaya Termux close karne pe <span class="arrow">›</span></summary><div class="acc-body">
-    <div class="pf"><div class="lbl">Matlab</div><div class="val">Bina wake-lock, Android ne Termux ko screen-off pe maar diya.</div></div>
-    <div class="pf"><div class="lbl">Fix</div><div class="val"><code>termux-wake-lock</code> + battery optimization OFF + tmux at Termux level.</div></div>
-  </div></details>
-
-  <!-- ================= FUTURE ================= -->
+  <!-- FUTURE -->
   <h2 id="future">🔮 Future scope</h2>
   <ul>
-    <li><b>Official WhatsApp Business API</b> — whatsapp-web.js ki jagah, zyada reliable (par paid).</li>
-    <li><b>Attendance verification</b> — agar NPTEL response sheet ka access mile, to actual submission verify ho.</li>
-    <li><b>Weekly admin summary</b> — har Sunday poori team ka attendance report WhatsApp pe.</li>
+    <li><b>Official WhatsApp Business API</b> — zyada reliable (paid).</li>
+    <li><b>Attendance verification</b> — NPTEL response sheet access mile to actual submit verify.</li>
+    <li><b>Weekly admin summary</b> — Sunday poori team ka report.</li>
     <li><b>Smarter reminders</b> — max 3/day, escalating tone.</li>
-    <li><b>Multi-form support</b> — alag internships ke alag forms.</li>
-    <li><b>CSV export</b> aur attendance streak/calendar admin panel mein.</li>
-    <li><b>Telegram version</b> — Telegram bots proactive messaging allow karte hain, zyada stable.</li>
-    <li><b>Automated tests + CI/CD</b> — code quality ke liye.</li>
-    <li><b>Docker</b> — deployment kisi bhi cloud pe one-command.</li>
+    <li><b>CSV export + streak calendar</b> admin panel mein.</li>
+    <li><b>Telegram version</b> — proactive messaging allowed, stable.</li>
+    <li><b>Docker</b> — one-command deploy kisi bhi cloud pe.</li>
+    <li><b>Automated tests + CI/CD.</b></li>
   </ul>
-
-  <div class="box tip" style="margin-top:34px"><span class="ic">📖</span><div>Sabhi commands ki quick copy-paste list: <a href="/commands">Command Reference →</a></div></div>
+  <div class="box tip" style="margin-top:34px"><span class="ic">📖</span><div>Quick copy-paste commands: <a href="/commands">Command Reference →</a></div></div>
 </main>
 </div>
-
 <script>
-// active nav on scroll
 const links=[...document.querySelectorAll('nav a[href^="#"]')];
 const secs=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
-function onScroll(){
-  let cur=secs[0];
-  for(const s of secs){ if(s.getBoundingClientRect().top<=120) cur=s; }
-  links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+cur.id));
-}
-document.addEventListener('scroll',onScroll); onScroll();
-
-// copy buttons on code blocks
-document.querySelectorAll('pre').forEach(pre=>{
-  const b=document.createElement('button');b.className='copy';b.textContent='Copy';
-  b.onclick=async()=>{try{await navigator.clipboard.writeText(pre.innerText.replace(/Copy$/,''));}catch{}
-    b.textContent='Copied';b.classList.add('ok');setTimeout(()=>{b.textContent='Copy';b.classList.remove('ok');},1300);};
-  pre.appendChild(b);
-});
+function onScroll(){let cur=secs[0];for(const s of secs){if(s.getBoundingClientRect().top<=120)cur=s;}
+  links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+cur.id));}
+document.addEventListener('scroll',onScroll);onScroll();
+document.querySelectorAll('pre').forEach(pre=>{const b=document.createElement('button');b.className='copy';b.textContent='Copy';
+  b.onclick=async()=>{const t=pre.querySelector('code').innerText;try{await navigator.clipboard.writeText(t);}catch{}
+  b.textContent='Copied';b.classList.add('ok');setTimeout(()=>{b.textContent='Copy';b.classList.remove('ok');},1300);};pre.appendChild(b);});
 </script>
 </body>
 </html>
