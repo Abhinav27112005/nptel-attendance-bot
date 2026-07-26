@@ -561,7 +561,8 @@ client.on('ready', async () => {
                 .map(p => ({
                     id: p.whatsapp_id,
                     name: p.name || p.internship_id,
-                    internshipId: p.internship_id
+                    internshipId: p.internship_id,
+                    endDate: p.end_date   // internship complete check ke liye
                 }));
         });
         remindersStarted = true;

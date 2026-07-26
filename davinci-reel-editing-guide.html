@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DaVinci Resolve — Beginner Reel Editing Guide</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --ink:#1c2230; --muted:#5b6472;
+    --line:#e4e7ef; --brand:#5b4bff; --brand-soft:#eceafe;
+    --tip:#0f9d58; --tip-bg:#e9f7ef; --warn:#e8710a; --warn-bg:#fdf1e3;
+    --key-bg:#2b3040; --key-ink:#fff; --shadow:0 6px 24px rgba(20,25,45,.07);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1218; --card:#171b24; --ink:#e8ebf2; --muted:#9aa4b5;
+      --line:#262c39; --brand:#8b7dff; --brand-soft:#1e1b3a;
+      --tip:#3ddc84; --tip-bg:#132a1e; --warn:#ffb15c; --warn-bg:#2c2012;
+      --key-bg:#000; --key-ink:#fff; --shadow:0 6px 24px rgba(0,0,0,.4);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:860px; margin:0 auto; padding:0 20px 80px}
+  header.hero{
+    background:linear-gradient(135deg,var(--brand),#8b5bff);
+    color:#fff; padding:56px 20px 48px; text-align:center;
+  }
+  header.hero h1{margin:0 0 10px; font-size:30px; line-height:1.2}
+  header.hero p{margin:0 auto; max-width:560px; opacity:.95; font-size:16px}
+  .badge{display:inline-block; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px; border-radius:999px; font-size:13px; margin-bottom:18px; letter-spacing:.3px}
+
+  nav.toc{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:22px 24px; margin:-28px auto 34px; box-shadow:var(--shadow); position:relative;
+  }
+  nav.toc h2{margin:0 0 12px; font-size:14px; text-transform:uppercase; letter-spacing:1px; color:var(--muted)}
+  nav.toc ol{margin:0; padding-left:20px; columns:2; column-gap:28px}
+  @media(max-width:560px){nav.toc ol{columns:1}}
+  nav.toc li{margin:5px 0; break-inside:avoid}
+  nav.toc a{color:var(--ink); text-decoration:none}
+  nav.toc a:hover{color:var(--brand); text-decoration:underline}
+
+  section{background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:28px 30px; margin:22px 0; box-shadow:var(--shadow); scroll-margin-top:16px}
+  @media(max-width:560px){section{padding:22px 20px}}
+  section h2{margin:0 0 6px; font-size:22px; display:flex; align-items:baseline; gap:12px}
+  .num{color:#fff; background:var(--brand); border-radius:10px; font-size:15px;
+    min-width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; align-self:center}
+  section h3{margin:26px 0 8px; font-size:17px; color:var(--brand)}
+  .lead{color:var(--muted); margin:2px 0 18px}
+
+  ol.steps{padding-left:0; counter-reset:step; list-style:none; margin:0}
+  ol.steps>li{position:relative; padding:2px 0 16px 40px; counter-increment:step; margin:0}
+  ol.steps>li::before{
+    content:counter(step); position:absolute; left:0; top:0;
+    width:26px; height:26px; background:var(--brand-soft); color:var(--brand);
+    border-radius:50%; font-size:13px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  ol.steps>li:not(:last-child)::after{
+    content:""; position:absolute; left:12.5px; top:28px; bottom:2px; width:2px; background:var(--line);
+  }
+
+  kbd{background:var(--key-bg); color:var(--key-ink); border-radius:6px; padding:2px 8px;
+    font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; box-shadow:0 2px 0 rgba(0,0,0,.35);
+    display:inline-block; white-space:nowrap}
+  .path{background:var(--brand-soft); color:var(--brand); border-radius:6px; padding:1px 7px;
+    font:600 13px/1.5 ui-monospace,Menlo,Consolas,monospace}
+  strong{color:var(--ink)}
+
+  .box{border-radius:12px; padding:14px 16px 14px 46px; margin:16px 0; position:relative; font-size:15px}
+  .box::before{position:absolute; left:14px; top:13px; font-size:18px}
+  .tip{background:var(--tip-bg); border:1px solid color-mix(in srgb,var(--tip) 35%, transparent)}
+  .tip::before{content:"💡"}
+  .warn{background:var(--warn-bg); border:1px solid color-mix(in srgb,var(--warn) 35%, transparent)}
+  .warn::before{content:"⚠️"}
+  .box b{color:var(--ink)}
+
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:15px; overflow:hidden; border-radius:10px}
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px}
+  th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--line)}
+  th{background:var(--brand-soft); color:var(--brand); font-size:13px; text-transform:uppercase; letter-spacing:.5px}
+  tr:last-child td{border-bottom:none}
+  td:first-child{white-space:nowrap}
+
+  .pages{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin:14px 0}
+  .page{background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px}
+  .page b{display:block; color:var(--brand); font-size:14px}
+  .page span{font-size:13px; color:var(--muted)}
+
+  footer{text-align:center; color:var(--muted); font-size:14px; margin-top:36px}
+  a.top{display:inline-block; margin-top:8px; color:var(--brand); text-decoration:none; font-size:13px}
+  .aspect{font:600 13px/1 ui-monospace,monospace; background:var(--ink); color:var(--card); padding:3px 8px; border-radius:6px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="badge">★ Complete Beginner Guide · No experience needed</div>
+  <h1>How to Edit a Vertical Reel in DaVinci Resolve</h1>
+  <p>Everything from installing the app to importing clips, adding music, syncing cuts to the beat, and exporting for Instagram &amp; YouTube Shorts. Read top to bottom — nothing is skipped.</p>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h2>What's inside</h2>
+    <ol>
+      <li><a href="#what">What we're building</a></li>
+      <li><a href="#install">Install DaVinci Resolve (free)</a></li>
+      <li><a href="#pages">The 7 "Pages" explained</a></li>
+      <li><a href="#project">Create a vertical 9:16 project</a></li>
+      <li><a href="#import">Import your videos &amp; music</a></li>
+      <li><a href="#timeline">Build the timeline</a></li>
+      <li><a href="#fit">Fit horizontal clips into vertical</a></li>
+      <li><a href="#cut">Cut &amp; trim your clips</a></li>
+      <li><a href="#beat">Sync cuts to the beat (the secret)</a></li>
+      <li><a href="#transitions">Add transitions</a></li>
+      <li><a href="#speed">Slow-motion &amp; speed ramps</a></li>
+      <li><a href="#text">Add text &amp; titles</a></li>
+      <li><a href="#color">Color grade (make it pop)</a></li>
+      <li><a href="#audio">Music &amp; audio levels</a></li>
+      <li><a href="#export">Export for Instagram / YouTube</a></li>
+      <li><a href="#shortcuts">Keyboard shortcut cheat-sheet</a></li>
+      <li><a href="#mistakes">Common beginner mistakes</a></li>
+    </ol>
+  </nav>
+
+  <!-- 0 -->
+  <section id="what">
+    <h2><span class="num">0</span> What we're building</h2>
+    <p class="lead">Understand the recipe before you touch a button.</p>
+    <p>The reel you linked is a <strong>vertical short-form video</strong>. Almost every reel in this style is made from the same 5 ingredients:</p>
+    <ol class="steps">
+      <li><strong>Vertical frame</strong> — the video is tall, not wide. The format is <span class="aspect">9:16</span> at <strong>1080 × 1920 pixels</strong>. This is the #1 setting beginners forget.</li>
+      <li><strong>Several short clips</strong> — 5 to 20 small video pieces, each usually 0.5–2 seconds long.</li>
+      <li><strong>One music track</strong> — a trending song or beat that runs underneath everything.</li>
+      <li><strong>Cuts on the beat</strong> — every time the music "hits," the clip changes. This is what makes a reel feel professional.</li>
+      <li><strong>Polish</strong> — transitions, a touch of slow-motion, text, and color that makes it look vivid.</li>
+    </ol>
+    <div class="box tip"><b>Mindset:</b> Editing is just <em>arranging</em> small clips in a row and <em>trimming</em> the boring parts off each end. That's 90% of the job. Everything else is decoration.</div>
+  </section>
+
+  <!-- 1 -->
+  <section id="install">
+    <h2><span class="num">1</span> Install DaVinci Resolve (100% free)</h2>
+    <p class="lead">The free version is fully capable of everything in this guide.</p>
+    <ol class="steps">
+      <li>Open your browser and search <strong>"DaVinci Resolve download"</strong>, or go to the Blackmagic Design website (<span class="path">blackmagicdesign.com/products/davinciresolve</span>).</li>
+      <li>Click the big <strong>Download</strong> button. You'll see two columns: <strong>DaVinci Resolve</strong> (free) and <strong>DaVinci Resolve Studio</strong> (paid). Choose the <strong>free</strong> one on the left.</li>
+      <li>Pick your operating system — <strong>Windows</strong>, <strong>Mac</strong>, or <strong>Linux</strong>.</li>
+      <li>It asks for your name and email (just to register the free download). Fill it in and download. The file is large (several GB) — this is normal.</li>
+      <li>Run the installer, click <strong>Next</strong> through the steps, and <strong>restart your computer</strong> when it finishes.</li>
+    </ol>
+    <div class="box warn"><b>Slow computer?</b> DaVinci Resolve is heavy software. If it stutters, that's your hardware, not you. Close other apps, and in <span class="path">Playback ▸ Timeline Proxy Resolution ▸ Half</span> to make preview smoother while editing.</div>
+  </section>
+
+  <!-- 2 -->
+  <section id="pages">
+    <h2><span class="num">2</span> The 7 "Pages" explained</h2>
+    <p class="lead">Resolve is split into 7 rooms. You only need 3 of them for a reel.</p>
+    <p>Look at the very <strong>bottom-center</strong> of the screen after opening a project. You'll see 7 little icons. Each is a "page" — a different workspace:</p>
+    <div class="pages">
+      <div class="page"><b>Media</b><span>Import files</span></div>
+      <div class="page"><b>Cut</b><span>Fast rough editing</span></div>
+      <div class="page"><b>Edit ★</b><span>Main editing room</span></div>
+      <div class="page"><b>Fusion</b><span>Advanced effects</span></div>
+      <div class="page"><b>Color ★</b><span>Color grading</span></div>
+      <div class="page"><b>Fairlight</b><span>Advanced audio</span></div>
+      <div class="page"><b>Deliver ★</b><span>Export the video</span></div>
+    </div>
+    <div class="box tip"><b>Only care about the ★ three:</b> <strong>Edit</strong> (build the reel), <strong>Color</strong> (make it look good), and <strong>Deliver</strong> (save the final file). Ignore Fusion and Fairlight completely as a beginner.</div>
+  </section>
+
+  <!-- 3 -->
+  <section id="project">
+    <h2><span class="num">3</span> Create a vertical 9:16 project</h2>
+    <p class="lead">Do this FIRST, before adding any clips. Fixing it later is painful.</p>
+    <ol class="steps">
+      <li>When Resolve opens, you land on the <strong>Project Manager</strong>. Click <strong>New Project</strong>, give it a name like <em>"My First Reel"</em>, and click Create.</li>
+      <li>Look at the <strong>bottom-right corner</strong> for a small <strong>gear ⚙ icon</strong> (Project Settings). Click it.</li>
+      <li>On the <strong>Master Settings</strong> tab, find <strong>Timeline Resolution</strong>. Open the dropdown and choose <strong>Custom</strong>.</li>
+      <li>Type the width and height <em>swapped</em> to make it vertical: Width = <strong>1080</strong>, Height = <strong>1920</strong>.</li>
+      <li>Set <strong>Timeline frame rate</strong> to <strong>30</strong> (good for social media). <span style="color:var(--warn)">Set this now</span> — frame rate locks once you add clips.</li>
+      <li>Click <strong>Save</strong>. Your preview window should now be a tall rectangle. 🎉</li>
+    </ol>
+    <div class="box warn"><b>Why it matters:</b> If you skip this, you'll edit in a wide horizontal frame, and your reel will have ugly black bars on top and bottom when posted. Vertical-first saves you hours.</div>
+  </section>
+
+  <!-- 4 -->
+  <section id="import">
+    <h2><span class="num">4</span> Import your videos &amp; music</h2>
+    <p class="lead">Getting your files into the app. This is the "add the videos and music" part.</p>
+    <h3>Step A — Put your files in one folder first</h3>
+    <p>Before opening Resolve, create a folder on your desktop (e.g. <em>"Reel Project"</em>) and drop <strong>all your video clips</strong> and your <strong>music file</strong> (.mp3 / .wav) inside it. Keeping everything together prevents "media offline" errors later.</p>
+    <h3>Step B — Import into Resolve</h3>
+    <ol class="steps">
+      <li>Click the <strong>Edit</strong> page at the bottom.</li>
+      <li>Top-left is the <strong>Media Pool</strong> — an empty box that will hold your files.</li>
+      <li>The easiest way: open your folder in Windows Explorer / Finder, <strong>select all your clips + music</strong>, and simply <strong>drag them into the Media Pool</strong> box.</li>
+      <li>Alternative: right-click inside the Media Pool ▸ <strong>Import Media</strong>, then select your files.</li>
+      <li>If a pop-up asks <strong>"Change frame rate?"</strong>, click <strong>Don't Change</strong> (you already set it in Step 3).</li>
+    </ol>
+    <div class="box tip"><b>You'll now see thumbnails</b> of every video and a waveform icon for your song, all sitting in the Media Pool, ready to use.</div>
+  </section>
+
+  <!-- 5 -->
+  <section id="timeline">
+    <h2><span class="num">5</span> Build the timeline</h2>
+    <p class="lead">The timeline is the strip at the bottom where you lay clips in order, left to right.</p>
+    <ol class="steps">
+      <li>In the Media Pool, right-click your <strong>music track</strong> ▸ <strong>Create New Timeline Using Selected Clips</strong>. This creates the timeline <em>and</em> lays your song down first. (Building to the music is the pro way to do reels.)</li>
+      <li>Your song now appears as a green <strong>audio clip</strong> on an audio track (labelled A1) at the bottom.</li>
+      <li>Now drag your <strong>video clips</strong> one by one from the Media Pool up onto the <strong>video track</strong> (labelled V1), placing them in the order you want, left to right.</li>
+      <li>Press <kbd>Spacebar</kbd> to play and preview at any time. Press it again to stop.</li>
+    </ol>
+    <div class="box tip"><b>Reading the timeline:</b> Video lives on top tracks (V1, V2…), audio on bottom tracks (A1, A2…). The vertical white line is the <strong>playhead</strong> — it shows exactly which frame you're viewing.</div>
+  </section>
+
+  <!-- 6 -->
+  <section id="fit">
+    <h2><span class="num">6</span> Fit horizontal clips into the vertical frame</h2>
+    <p class="lead">If your clips were filmed horizontally (sideways), they'll have black bars. Here's the fix.</p>
+    <ol class="steps">
+      <li>Click a clip on the timeline once to <strong>select it</strong> (it gets a red outline).</li>
+      <li>Look at the <strong>top-right</strong> for the <strong>Inspector</strong> panel. Click it to open.</li>
+      <li>Under <strong>Transform</strong>, find <strong>Zoom</strong>. Drag its value up (e.g. to 1.7–2.0) until the clip fills the whole tall frame.</li>
+      <li>Use <strong>Position X / Y</strong> to slide the clip so the important subject is centered.</li>
+      <li>Repeat for each horizontal clip. (Clips filmed vertically on a phone already fit perfectly — no action needed.)</li>
+    </ol>
+    <div class="box tip"><b>Shortcut:</b> Instead of typing numbers, click the clip and drag directly in the preview window to reposition and resize it visually.</div>
+  </section>
+
+  <!-- 7 -->
+  <section id="cut">
+    <h2><span class="num">7</span> Cut &amp; trim your clips</h2>
+    <p class="lead">Trimming = shaving off the boring start/end of each clip so only the good bit remains.</p>
+    <h3>Trim the ends (the gentle way)</h3>
+    <p>Hover your mouse over the <strong>left or right edge</strong> of a clip until the cursor becomes a bracket <strong>[ ]</strong>, then click and drag inward. The clip gets shorter. Drag outward to bring footage back.</p>
+    <h3>Cut a clip in half (the blade)</h3>
+    <ol class="steps">
+      <li>Move the playhead to the exact spot you want to cut (click on the timeline ruler, or use arrow keys).</li>
+      <li>Press <kbd>Ctrl</kbd> + <kbd>B</kbd> (Windows) / <kbd>Cmd</kbd> + <kbd>B</kbd> (Mac). The clip splits into two at the playhead.</li>
+      <li>Click the piece you don't want and press <kbd>Delete</kbd> to remove it. This leaves a gap.</li>
+      <li>To remove a piece <em>and</em> automatically close the gap, select it and press <kbd>Shift</kbd> + <kbd>Delete</kbd> (this is called a <strong>ripple delete</strong>).</li>
+    </ol>
+    <div class="box tip"><b>Golden rule of reels:</b> Keep clips SHORT. If a clip feels a tiny bit too long, it's too long. Fast pace is what makes reels addictive.</div>
+  </section>
+
+  <!-- 8 -->
+  <section id="beat">
+    <h2><span class="num">8</span> Sync cuts to the beat 🥁 (the real secret)</h2>
+    <p class="lead">This single technique separates amateur edits from ones that feel "professional."</p>
+    <p>The idea: mark where the beats hit in your song, then make every clip change happen exactly on a beat.</p>
+    <h3>Step A — Mark the beats</h3>
+    <ol class="steps">
+      <li>Click the <strong>audio (music) track</strong> once to select it.</li>
+      <li>Press <kbd>Spacebar</kbd> to play the song.</li>
+      <li>Every time you hear a strong beat/drum hit, tap the <kbd>M</kbd> key. A little marker drops on the timeline at that moment.</li>
+      <li>Let the whole song play while tapping <kbd>M</kbd> on the beat. You'll end up with a row of coloured markers = your "cut points."</li>
+    </ol>
+    <h3>Step B — Cut clips to the markers</h3>
+    <ol class="steps">
+      <li>Turn on <strong>snapping</strong> by pressing <kbd>N</kbd> (so the playhead magnetically sticks to markers).</li>
+      <li>Drag the edge of each video clip so it <strong>starts and ends on a marker</strong>. Now every clip is exactly one "beat" long.</li>
+      <li>Play it back. Each clip should flip to the next right as the music hits. That's the magic. ✨</li>
+    </ol>
+    <div class="box tip"><b>Even easier method:</b> On the <strong>Cut</strong> page, tools like "Sync Bin" and the fast trim make beat-cutting quicker once you're comfortable. But the marker method above works perfectly and is easiest to understand first.</div>
+  </section>
+
+  <!-- 9 -->
+  <section id="transitions">
+    <h2><span class="num">9</span> Add transitions</h2>
+    <p class="lead">Transitions blend one clip into the next. Use them sparingly.</p>
+    <h3>The instant way</h3>
+    <p>Click the <strong>cut point</strong> between two clips (a thin line appears), then press <kbd>Ctrl</kbd> + <kbd>T</kbd>. A default <strong>Cross Dissolve</strong> (smooth fade) is added.</p>
+    <h3>The picky way (choose a style)</h3>
+    <ol class="steps">
+      <li>Top-left, click <strong>Effects</strong> (or the "Effects Library" toolbox icon).</li>
+      <li>Open <strong>Video Transitions</strong>. You'll see options like Cross Dissolve, Dip to Color, Blur, Push, Zoom.</li>
+      <li><strong>Drag</strong> the transition you like directly onto the cut point between two clips.</li>
+      <li>To make it longer/shorter, drag the edges of the little transition rectangle that appears.</li>
+    </ol>
+    <div class="box warn"><b>Less is more:</b> Most punchy reels use <em>hard cuts</em> (no transition) on the beat, plus the occasional zoom or whip-pan transition for flair. Don't put a fancy transition on every cut — it looks cheap.</div>
+  </section>
+
+  <!-- 10 -->
+  <section id="speed">
+    <h2><span class="num">10</span> Slow-motion &amp; speed ramps</h2>
+    <p class="lead">Slowing a clip down for dramatic moments, or speeding it up to skip ahead.</p>
+    <h3>Simple speed change</h3>
+    <ol class="steps">
+      <li>Right-click a clip ▸ <strong>Change Clip Speed</strong>.</li>
+      <li>Set speed below 100% for <strong>slow-motion</strong> (e.g. 50%), or above 100% to <strong>speed up</strong> (e.g. 200%).</li>
+      <li>Click <strong>Change</strong>.</li>
+    </ol>
+    <h3>Speed ramp (fast → slow in one clip)</h3>
+    <ol class="steps">
+      <li>Select the clip and press <kbd>Ctrl</kbd> + <kbd>R</kbd> to open <strong>Retime Controls</strong>.</li>
+      <li>A speed bar appears under the clip. Click the little arrow ▸ <strong>Add Speed Point</strong> where you want the speed to change.</li>
+      <li>Drag each section's arrow to set different speeds — e.g. fast into a moment, then slow at the peak. This is that dramatic "whoosh then freeze" look.</li>
+    </ol>
+    <div class="box tip"><b>Buttery slow-mo:</b> For smoother slow motion, right-click the clip ▸ <strong>Retime Process ▸ Optical Flow</strong>. (Best results if the clip was filmed at a high frame rate like 60fps.)</div>
+  </section>
+
+  <!-- 11 -->
+  <section id="text">
+    <h2><span class="num">11</span> Add text &amp; titles</h2>
+    <p class="lead">On-screen words, captions, or a hook at the start.</p>
+    <ol class="steps">
+      <li>Open <strong>Effects</strong> ▸ <strong>Titles</strong>.</li>
+      <li>Drag <strong>Text+</strong> (or plain "Text") onto a video track <em>above</em> your clips (V2), at the point where you want the words to appear.</li>
+      <li>Select the text clip, open the <strong>Inspector</strong> (top-right), and type your words in the Text box.</li>
+      <li>Change the <strong>Font</strong>, <strong>Size</strong>, <strong>Color</strong>, and drag it into position in the preview.</li>
+      <li>Make it appear/disappear by trimming the text clip's length on the timeline.</li>
+    </ol>
+    <div class="box tip"><b>Keep text readable:</b> Big font, high contrast, and keep it on screen long enough to read twice. On phones, thin small text disappears.</div>
+  </section>
+
+  <!-- 12 -->
+  <section id="color">
+    <h2><span class="num">12</span> Color grade — make it pop</h2>
+    <p class="lead">Colour grading is what gives reels that vivid, cinematic look. Basics only here.</p>
+    <ol class="steps">
+      <li>Click the <strong>Color</strong> page at the bottom (the ★ page with the colour-wheel icon).</li>
+      <li>At the top, click the <strong>thumbnail of the clip</strong> you want to grade.</li>
+      <li>Find the <strong>Primary Wheels</strong> (four colour wheels). Under them are sliders:
+        <ul>
+          <li><strong>Lift</strong> = shadows/darks</li>
+          <li><strong>Gamma</strong> = midtones</li>
+          <li><strong>Gain</strong> = highlights/brights</li>
+        </ul>
+      </li>
+      <li>Nudge <strong>Contrast</strong> up slightly, and <strong>Saturation</strong> up a little (e.g. to 55–65) for a punchier look. Don't overdo it.</li>
+      <li>To copy your look to every clip: right-click a graded clip's thumbnail ▸ hover the mouse over another clip and press the <strong>middle mouse button</strong>, or select all clips and use <strong>Ripple</strong>/paste grade.</li>
+    </ol>
+    <div class="box tip"><b>Instant look with a LUT:</b> In the <strong>LUTs</strong> panel (bottom-left of Color page), double-click a preset (try the "Film Looks") to instantly apply a cinematic colour style to the selected clip.</div>
+  </section>
+
+  <!-- 13 -->
+  <section id="audio">
+    <h2><span class="num">13</span> Music &amp; audio levels</h2>
+    <p class="lead">Make sure the music sits at a good volume and starts/ends cleanly.</p>
+    <ol class="steps">
+      <li>Back on the <strong>Edit</strong> page, look at your green music clip. Running through it horizontally is a thin <strong>volume line</strong>.</li>
+      <li>Drag that line <strong>up</strong> to make it louder or <strong>down</strong> to make it quieter.</li>
+      <li><strong>Fade in/out:</strong> hover over the top-left or top-right corner of the audio clip — a little white handle appears. Drag it inward to create a smooth fade so the song doesn't start/stop abruptly.</li>
+      <li>Trim the song to match your video's length (drag its right edge in), and add a fade-out at the very end.</li>
+    </ol>
+    <div class="box warn"><b>Watch the meters:</b> On the right you'll see audio level meters. Keep the loud peaks around <strong>-6 dB</strong> and never let them hit the red at the top (0 dB) — that causes ugly distortion.</div>
+  </section>
+
+  <!-- 14 -->
+  <section id="export">
+    <h2><span class="num">14</span> Export for Instagram / YouTube Shorts</h2>
+    <p class="lead">Turning your project into a single video file you can upload.</p>
+    <ol class="steps">
+      <li>Click the <strong>Deliver</strong> page at the bottom (rocket icon).</li>
+      <li>Top-left, choose a preset. Pick <strong>YouTube</strong> or <strong>Custom</strong>. (These already use the H.264 format phones love.)</li>
+      <li>Set <strong>Filename</strong> and choose a <strong>Location</strong> (Browse to a folder you'll remember).</li>
+      <li>Confirm <strong>Resolution = 1920 × 1080</strong> shown as vertical (1080 × 1920), <strong>Format = MP4</strong>, <strong>Codec = H.264</strong>, <strong>Frame rate = 30</strong> (match your project).</li>
+      <li>Click <strong>Add to Render Queue</strong> at the bottom.</li>
+      <li>On the right, your job appears in the queue. Click <strong>Render All</strong>.</li>
+      <li>Wait for the progress bar. When done, your finished <strong>.mp4</strong> is in the folder you chose — upload it straight to Instagram Reels or YouTube Shorts. 🚀</li>
+    </ol>
+    <div class="box tip"><b>Quality vs size:</b> If you want smaller files, lower the "Quality" bitrate a bit. For social media, the default is already great — don't overthink it.</div>
+  </section>
+
+  <!-- 15 -->
+  <section id="shortcuts">
+    <h2><span class="num">15</span> Keyboard shortcut cheat-sheet</h2>
+    <p class="lead">Print this. Learning even 5 of these will double your editing speed.</p>
+    <div class="tablewrap">
+    <table>
+      <tr><th>Action</th><th>Windows</th><th>Mac</th></tr>
+      <tr><td>Play / Pause</td><td><kbd>Spacebar</kbd></td><td><kbd>Spacebar</kbd></td></tr>
+      <tr><td>Split clip at playhead</td><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td><kbd>Cmd</kbd>+<kbd>B</kbd></td></tr>
+      <tr><td>Delete (leave gap)</td><td><kbd>Delete</kbd></td><td><kbd>Delete</kbd></td></tr>
+      <tr><td>Ripple delete (close gap)</td><td><kbd>Shift</kbd>+<kbd>Del</kbd></td><td><kbd>Shift</kbd>+<kbd>Del</kbd></td></tr>
+      <tr><td>Add marker (beat)</td><td><kbd>M</kbd></td><td><kbd>M</kbd></td></tr>
+      <tr><td>Toggle snapping</td><td><kbd>N</kbd></td><td><kbd>N</kbd></td></tr>
+      <tr><td>Add default transition</td><td><kbd>Ctrl</kbd>+<kbd>T</kbd></td><td><kbd>Cmd</kbd>+<kbd>T</kbd></td></tr>
+      <tr><td>Open Retime (speed) controls</td><td><kbd>Ctrl</kbd>+<kbd>R</kbd></td><td><kbd>Cmd</kbd>+<kbd>R</kbd></td></tr>
+      <tr><td>Undo</td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td><kbd>Cmd</kbd>+<kbd>Z</kbd></td></tr>
+      <tr><td>Zoom timeline in / out</td><td><kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>-</kbd></td><td><kbd>Cmd</kbd>+<kbd>=</kbd> / <kbd>-</kbd></td></tr>
+      <tr><td>Step one frame back / forward</td><td><kbd>←</kbd> / <kbd>→</kbd></td><td><kbd>←</kbd> / <kbd>→</kbd></td></tr>
+    </table>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section id="mistakes">
+    <h2><span class="num">16</span> Common beginner mistakes (avoid these)</h2>
+    <ol class="steps">
+      <li><strong>Forgetting vertical setup</strong> — always set 1080×1920 in Project Settings <em>before</em> editing (Step 3).</li>
+      <li><strong>Clips too long</strong> — reels live and die on pace. When in doubt, cut it shorter.</li>
+      <li><strong>Ignoring the beat</strong> — random cuts feel messy. Cutting on the beat (Step 8) fixes almost everything.</li>
+      <li><strong>Overusing transitions &amp; effects</strong> — one or two well-placed ones beat a dozen flashy ones.</li>
+      <li><strong>Loud/distorted music</strong> — keep peaks under 0 dB and add a fade at the end (Step 13).</li>
+      <li><strong>Not saving</strong> — Resolve auto-saves, but hit <kbd>Ctrl</kbd>+<kbd>S</kbd> often anyway.</li>
+      <li><strong>Copyright music</strong> — for Instagram/YouTube, use the platform's own audio library or royalty-free tracks so your reel isn't muted or blocked.</li>
+    </ol>
+    <div class="box tip"><b>Your first reel won't be perfect — that's fine.</b> Make three short reels this week. By the third, all of this will feel automatic. Editing is a skill you build with reps, not talent you're born with.</div>
+  </section>
+
+  <footer>
+    Made for total beginners · DaVinci Resolve (free) · Vertical 9:16 reels<br>
+    <a class="top" href="#what">↑ Back to top</a>
+  </footer>
+
+</div>
+</body>
+</html>

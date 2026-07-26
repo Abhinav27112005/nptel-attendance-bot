@@ -60,10 +60,36 @@ function hasSubmittedToday(internshipId) {
     return loadState()[internshipId] === getTodayString();
 }
 
+// -----------------------------------------------------------------------------
+// INTERNSHIP COMPLETION — congrats once, phir reminders band
+// -----------------------------------------------------------------------------
+// Internship complete = aaj ki date user ke end_date se AAGE nikal gayi.
+// Dono "YYYY-MM-DD" strings hain, isliye seedha string compare kaam karta hai
+// ("2026-08-11" > "2026-08-10" → true).
+function isInternshipOver(endDate) {
+    if (!endDate) return false;
+    return getTodayString() > endDate;
+}
+
+// Congrats sirf EK BAAR bhejna hai (warna har 30 min congrats aayega).
+// State file mein ek reserved key "_congratulated" mein track karte hain.
+// (Internship IDs jaise "SUM260130" hote hain, isliye "_congratulated"
+//  kisi user ID se clash nahi karega.)
+function wasCongratulated(internshipId) {
+    const state = loadState();
+    return !!(state._congratulated && state._congratulated[internshipId]);
+}
+function markCongratulated(internshipId) {
+    const state = loadState();
+    if (!state._congratulated) state._congratulated = {};
+    state._congratulated[internshipId] = getTodayString();
+    saveState(state);
+}
+
 /**
  * Start the reminder scheduler.
  * @param {object} client       WhatsApp client (sendMessage)
- * @param {function} getTargets async () => [{ id, name, internshipId }, ...]
+ * @param {function} getTargets async () => [{ id, name, internshipId, endDate }, ...]
  */
 function startReminders(client, getTargets) {
     console.log('[Reminder] Scheduler started — pings every 30 min from 5 PM to 11 PM IST.');
@@ -74,11 +100,34 @@ function startReminders(client, getTargets) {
         const targets = await getTargets();
 
         for (const user of targets) {
+            // 1) Internship complete? → congrats (ek baar) → koi aur reminder nahi.
+            if (isInternshipOver(user.endDate)) {
+                if (!wasCongratulated(user.internshipId)) {
+                    const congratsText =
+                        `🎉 *Congratulations, ${user.name}!* 🎓\n\n` +
+                        `Aapki *NPTEL Summer Internship 2026* successfully complete ho gayi! 🙌\n\n` +
+                        `Poore internship ke dauraan regularly attendance mark karne ke liye shukriya. ` +
+                        `Aapki mehnat rang laayi! 💪\n\n` +
+                        `_Ab se koi attendance reminder nahi aayega._\n\n` +
+                        `Aage ke safar ke liye All the Best! 🚀`;
+                    try {
+                        await client.sendMessage(user.id, congratsText);
+                        markCongratulated(user.internshipId);
+                        console.log(`[Reminder] ${user.name} internship complete — congrats sent, reminders OFF.`);
+                    } catch (err) {
+                        console.error(`[Reminder] Congrats failed for ${user.name}:`, err.message);
+                    }
+                }
+                continue;  // complete users ko attendance reminder nahi
+            }
+
+            // 2) Aaj bhar chuke? → skip.
             if (hasSubmittedToday(user.internshipId)) {
                 console.log(`[Reminder] ${user.name} already submitted — skip.`);
                 continue;
             }
 
+            // 3) Warna normal reminder bhejo.
             const reminderText =
                 `⏰ *Attendance Reminder*\n\n` +
                 `Hi ${user.name}! You haven't marked today's attendance yet. 📝\n\n` +
@@ -94,7 +143,6 @@ function startReminders(client, getTargets) {
             }
         }
     }, {
-        // FIX: lock to IST so it fires at the right hour on any host (Render UTC, etc.)
         timezone: 'Asia/Kolkata'
     });
 }
